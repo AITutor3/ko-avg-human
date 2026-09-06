@@ -788,136 +788,220 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 34px; }
   transform: scale(0.97);
 }
 
-.overall-result-card {
-  background: linear-gradient(165deg, #ffffff 0%, #f4f0ff 100%);
-  border: 2px solid #7209b7;
-  border-radius: 24px;
-  padding: 24px 20px;
+/* ─────────────────────────────────────────────────────────
+   스마트폰 결과 화면 (레퍼런스 스크린샷 디자인 100% 매칭)
+   ───────────────────────────────────────────────────────── */
+.chart-screen-wrap {
+  background: #f8f9fa;
+}
+
+.result-main-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.result-header-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.result-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.result-sub-branding {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.result-main-headline {
+  font-size: 22px;
+  font-weight: 900;
+  color: #111827;
+  line-height: 1.32;
+  letter-spacing: -0.03em;
+  white-space: pre-line;
+  margin-top: 2px;
+}
+
+.result-meta-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.result-meta-chips .divider {
+  color: #e5e7eb;
+}
+
+.result-meta-chips .top-percent-chip {
+  color: #ef4444;
+  font-weight: 800;
+}
+
+/* 카드 공통 독립 박스 */
+.card-box {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f3f4f6;
+}
+
+/* 1. 캐릭터 카드 내부 보정 */
+.character-card-box {
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* 2. 분포 곡선 차트 카드 */
+.chart-card-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chart-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chart-card-header .chart-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9ca3af;
+}
+
+.chart-card-header .chart-highlight-badge {
+  font-size: 11px;
+  font-weight: 800;
+  color: #d97706;
+  background: #fef3c7;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.chart-svg-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+/* 3. 수치 3열 박스 (중앙 박스 노란 테두리 및 '나' 뱃지) */
+.stats-triple-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.stat-box {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  position: relative;
+  min-height: 80px;
+}
+
+.stat-box .stat-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+.stat-box .stat-val {
+  font-size: 15px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.stat-box .diff-val {
+  color: #2563eb;
+}
+
+/* 중앙 '내 자산' 노란 테두리 카드 강조 */
+.stat-box.me-highlight-box {
+  border: 2px solid #f59e0b;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.15);
+}
+
+.me-top-tag {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #f59e0b;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 1px 8px;
+  border-radius: 999px;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
+/* 4. 최하단 verdict 문구 및 푸터 */
+.result-footer-section {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(114, 9, 183, 0.12);
-  margin-top: 12px;
+  margin-top: 10px;
+  padding: 10px 0;
 }
 
-.overall-badge .badge-tag {
-  display: inline-block;
-  font-size: 11px;
+.verdict-title {
+  font-size: 15px;
   font-weight: 900;
-  color: #7209b7;
-  background: #f0e5ff;
-  padding: 3px 10px;
-  border-radius: 999px;
-  letter-spacing: 0.05em;
-  margin-bottom: 8px;
+  color: #111827;
+  letter-spacing: -0.02em;
 }
 
-.overall-title {
-  font-size: 22px;
-  font-weight: 900;
-  color: #111111;
-  line-height: 1.3;
-}
-
-.overall-score-box {
-  background: #ffffff;
-  border: 1px solid #e2d1f9;
-  border-radius: 18px;
-  padding: 14px 24px;
-  margin: 18px 0 14px 0;
-  width: 100%;
-}
-
-.score-label {
+.verdict-sub {
   font-size: 12px;
   font-weight: 700;
-  color: var(--muted);
-}
-
-.score-value {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 4px;
+  color: #6b7280;
   margin-top: 4px;
 }
 
-.score-value .number {
-  font-size: 38px;
-  font-weight: 900;
-  color: #7209b7;
-  letter-spacing: -0.03em;
-}
-
-.score-value .sub {
-  font-size: 14px;
-  font-weight: 800;
-  color: #111111;
-}
-
-.overall-summary {
-  font-size: 14px;
-  font-weight: 700;
-  color: #333333;
-  line-height: 1.45;
-  margin-bottom: 14px;
-}
-
-.overall-tags {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-
-.tag-chip {
-  font-size: 12px;
-  font-weight: 800;
-  color: #560bad;
-  background: #f0e5ff;
-  padding: 4px 10px;
-  border-radius: 8px;
-}
-
-.disclaimer-note {
+.footer-viral-text {
   font-size: 11px;
-  color: #8b95a1;
-  margin-bottom: 20px;
-  line-height: 1.35;
+  font-weight: 600;
+  color: #9ca3af;
+  margin-top: 24px;
 }
 
-.overall-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
+.footer-viral-text .brand-link {
+  text-decoration: underline;
+  color: #6b7280;
 }
 
-.btn-primary {
-  display: block;
-  width: 100%;
-  border: none;
-  border-radius: var(--radius);
-  padding: 15px;
-  font-size: 15px;
-  font-weight: 800;
-  background: #7209b7;
-  color: #ffffff;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(114, 9, 183, 0.3);
-}
-
-.btn-secondary {
-  display: block;
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 13px;
-  font-size: 14px;
-  font-weight: 800;
-  background: #ffffff;
-  color: var(--fg);
-  cursor: pointer;
-}

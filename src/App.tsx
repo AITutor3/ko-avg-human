@@ -9,7 +9,7 @@ import {
   type Result,
 } from './stats'
 import { TOPICS, type Topic } from './topics'
-import { headline, intuitiveLine, subline, verdict } from './copy'
+import { headline, intuitiveLine, verdict } from './copy'
 import DistributionChart from './DistributionChart'
 import TypeResultCard from './TypeResultCard'
 
@@ -314,12 +314,14 @@ function ChartScreen({
   onRestart: () => void
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
+  const characterCardRef = useRef<HTMLDivElement>(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
   async function render(): Promise<Blob | null> {
-    if (!cardRef.current) return null
-    const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, cacheBust: true })
+    const target = characterCardRef.current || cardRef.current
+    if (!target) return null
+    const dataUrl = await toPng(target, { pixelRatio: 3, cacheBust: true })
     const res = await fetch(dataUrl)
     return res.blob()
   }
@@ -359,70 +361,88 @@ function ChartScreen({
     }
   }
 
+  const metaLabel = result.model.label
+
   return (
-    <div className="screen" style={{ padding: '16px 12px' }}>
-      {/* 상단 뒤로가기 (<) 버튼 */}
-      <button className="link-back" onClick={onRestart} style={{ marginBottom: 12, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 15, fontWeight: 800 }}>
+    <div className="screen chart-screen-wrap" style={{ padding: '16px 14px', background: '#f8f9fa' }}>
+      {/* 1. 상단 뒤로가기 버튼 */}
+      <button className="link-back" onClick={onRestart} style={{ marginBottom: 16, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, color: '#8b95a1' }}>
         ‹ 다른 테스트 선택하기
       </button>
 
+      {/* 캡처 & 렌더링 카드 전체 Container */}
       <div
-        className="result-card"
+        className="result-main-container"
         ref={cardRef}
         style={{ ['--accent' as string]: result.topic.accent } as React.CSSProperties}
       >
-        <div className="brand" style={{ marginBottom: 4 }}>
-          {result.topic.emoji} {result.topic.navTitle} 팩폭 결과
-        </div>
-
-        <div className="c-brand">평균인간 · {result.topic.navTitle}</div>
-        <h2 className="c-head" style={{ marginTop: 8 }}>{headline(result)}</h2>
-        <div className="c-sub" style={{ marginTop: 4, marginBottom: 12 }}>
-          {subline(result)}
-        </div>
-
-        {/* 1. 캐릭터 카드 (소제목 포함) */}
-        <div style={{ marginTop: 4, marginBottom: 14 }}>
-          <TypeResultCard result={result} onShare={onShare} onSave={onSave} busy={busy} />
-        </div>
-
-        {/* 2. 그 아래 정규분포 차트 */}
-        <div style={{ marginTop: 6, marginBottom: 10 }}>
-          <DistributionChart result={result} width={290} height={125} compact />
-        </div>
-
-        {/* 3. 수치 3열 박스 */}
-        <div className="stats" style={{ marginTop: 14 }}>
-          <div className="stat">
-            <b>{result.topic.fmt(result.model.median)}</b>
-            <span>또래 평균</span>
+        {/* 상단 뱃지 & 타이틀 헤더 */}
+        <div className="result-header-section">
+          <div className="result-pill-badge">
+            💰 {result.topic.navTitle} 팩폭 결과
           </div>
-          <div className="stat">
-            <b>{result.topic.fmt(result.value)}</b>
-            <span>나</span>
+          <div className="result-sub-branding">
+            평균인간 · {result.topic.navTitle}
           </div>
-          <div className="stat">
-            <b>
+          <h1 className="result-main-headline">
+            {headline(result)} 💸
+          </h1>
+          <div className="result-meta-chips">
+            <span className="meta-chip">{metaLabel} 기준</span>
+            <span className="divider">|</span>
+            <span className="top-percent-chip">🔥 상위 {Math.round(result.topPercent)}%</span>
+          </div>
+        </div>
+
+        {/* 2. 캐릭터 카드 (독립형 카드 - 공유/저장 캡처 대상) */}
+        <div className="card-box character-card-box">
+          <TypeResultCard result={result} onShare={onShare} onSave={onSave} busy={busy} cardInnerRef={characterCardRef} />
+        </div>
+
+        {/* 3. 분포 곡선 차트 카드 (독립형 카드) */}
+        <div className="card-box chart-card-box">
+          <div className="chart-card-header">
+            <span className="chart-title">또래 {result.topic.navTitle} 분포 곡선</span>
+            <span className="chart-highlight-badge">상위 {Math.round(result.topPercent)}% 지점</span>
+          </div>
+          <div className="chart-svg-container">
+            <DistributionChart result={result} width={310} height={135} compact />
+          </div>
+        </div>
+
+        {/* 4. 3열 수치 박스 (독립형 3개 카드로 구성, 중앙 '나' 박스 강조) */}
+        <div className="stats-triple-row">
+          <div className="stat-box">
+            <span className="stat-label">또래 평균</span>
+            <b className="stat-val">{result.topic.fmt(result.model.median)}</b>
+          </div>
+          <div className="stat-box me-highlight-box">
+            <div className="me-top-tag">나</div>
+            <span className="stat-label">내 {result.topic.navTitle.replace(' 위치', '')}</span>
+            <b className="stat-val me-val">{result.topic.fmt(result.value)}</b>
+          </div>
+          <div className="stat-box">
+            <span className="stat-label">차이</span>
+            <b className="stat-val diff-val">
               {result.diff >= 0 ? '+' : '−'}
               {result.topic.fmt(Math.abs(result.diff))}
             </b>
-            <span>차이</span>
           </div>
         </div>
 
-        <div className="verdict" style={{ marginTop: 14, textAlign: 'center', fontSize: 14, fontWeight: 800 }}>
-          {verdict(result)}
+        {/* 5. 최하단 팩폭 문구 & 브랜딩 푸터 */}
+        <div className="result-footer-section">
+          <h3 className="verdict-title">{verdict(result)}</h3>
+          <p className="verdict-sub">{intuitiveLine(result)}</p>
+          <div className="footer-viral-text">
+            너는 상위 몇 %야? · <span className="brand-link">평균인간에서 확인</span>
+          </div>
         </div>
-        <div className="intuitive" style={{ marginTop: 4, textAlign: 'center', fontSize: 12 }}>
-          {intuitiveLine(result)}
-        </div>
-
-        <div className="c-cta" style={{ marginTop: 16 }}>너는 상위 몇 %야? · 평균인간에서 확인</div>
       </div>
 
       {msg && <p className="mini-hint">{msg}</p>}
 
-      <div className="spacer" style={{ minHeight: 20 }} />
+      <div className="spacer" style={{ minHeight: 16 }} />
       <button className="btn ghost" onClick={onRestart} style={{ marginBottom: 12, marginTop: 16 }}>
         🔄 다른 테스트도 해보기
       </button>

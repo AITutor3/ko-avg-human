@@ -6,9 +6,10 @@ interface Props {
   onShare?: () => void
   onSave?: () => void
   busy?: boolean
+  cardInnerRef?: React.RefObject<HTMLDivElement>
 }
 
-export default function TypeResultCard({ result, onShare, onSave, busy }: Props) {
+export default function TypeResultCard({ result, onShare, onSave, busy, cardInnerRef }: Props) {
   const lab = label(result)
   const card = lab.card ?? {
     badgeTitle: lab.name,
@@ -19,7 +20,7 @@ export default function TypeResultCard({ result, onShare, onSave, busy }: Props)
   }
 
   return (
-    <div className="type-card-container">
+    <div className="type-card-container" ref={cardInnerRef}>
       {card.subTitle && (
         <div className="type-card-subtitle">
           {card.subTitle.split(' ').map((word, idx) => (

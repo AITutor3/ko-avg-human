@@ -78,109 +78,76 @@ export default function DistributionChart({
         }}
       />
 
-      {/* 3. 평균선 (점선 페이드인) */}
+      {/* 4. 또래 평균 점선 라벨 */}
       <line
         x1={meanX}
-        y1={pad.t}
+        y1={pad.t + 10}
         x2={meanX}
         y2={baselineY}
-        stroke="#4c6ef5"
+        stroke="#3b82f6"
         strokeWidth={1.5}
-        strokeDasharray="4 4"
-        style={{
-          animation: 'chart-fade 0.6s ease-out 0.4s forwards',
-          opacity: 0,
-        }}
+        strokeDasharray="3 3"
       />
-      {!compact && (
-        <text
-          x={clampText(meanX, width)}
-          y={pad.t - 5}
-          fill="#4c6ef5"
-          fontSize={10}
-          fontWeight={700}
-          textAnchor="middle"
-          style={{
-            animation: 'chart-fade 0.6s ease-out 0.4s forwards',
-            opacity: 0,
-          }}
-        >
-          평균 {topic.fmt(model.median)}
-        </text>
-      )}
+      <text
+        x={clampText(meanX, width)}
+        y={pad.t + 4}
+        fill="#3b82f6"
+        fontSize={10}
+        fontWeight={800}
+        textAnchor="middle"
+      >
+        또래 평균
+      </text>
 
-      {/* 4. 내 위치 수직선 & 핀 포인트 (곡선이 그려진 후 톡 튀어나오는 팝 애니메이션) */}
+      {/* 5. 내 위치 수직선 & 동그라미 '나 (상위 X%)' 표시 뱃지 */}
       <line
         x1={userX}
-        y1={pad.t - 2}
+        y1={pad.t + 20}
         x2={userX}
         y2={baselineY}
-        stroke={accent}
-        strokeWidth={2.5}
-        style={{
-          animation: 'chart-pin-line 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.9s forwards',
-          transformOrigin: `center ${baselineY}px`,
-          opacity: 0,
-        }}
+        stroke="#f59e0b"
+        strokeWidth={2}
       />
+      
+      {/* 바닥 지점 주황색 동그라미 점 */}
       <circle
         cx={userX}
-        cy={sy(interpY(points, value))}
-        r={6}
-        fill={accent}
-        stroke="#fff"
-        strokeWidth={2.5}
-        style={{
-          animation: 'chart-pin-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 1.0s forwards',
-          transformOrigin: `${userX}px ${sy(interpY(points, value))}px`,
-          opacity: 0,
-        }}
+        cy={baselineY}
+        r={5}
+        fill="#f59e0b"
+        stroke="#ffffff"
+        strokeWidth={2}
       />
-      {!compact && (
-        <g
-          style={{
-            animation: 'chart-pin-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 1.1s forwards',
-            transformOrigin: `${clampText(userX, width)}px ${baselineY + 16}px`,
-            opacity: 0,
-          }}
+
+      {/* 상단 '나 (상위 X%)' 동그라미 둥근 Pill 뱃지 */}
+      <g transform={`translate(${clampText(userX, width)}, ${pad.t + 10})`}>
+        <rect
+          x={-42}
+          y={-12}
+          width={84}
+          height={20}
+          rx={10}
+          fill="#f59e0b"
+        />
+        <text
+          x={0}
+          y={2}
+          fill="#ffffff"
+          fontSize={10}
+          fontWeight={900}
+          textAnchor="middle"
+          dominantBaseline="middle"
         >
-          <rect
-            x={clampText(userX, width) - 34}
-            y={baselineY + 4}
-            width={68}
-            height={20}
-            rx={10}
-            fill={accent}
-          />
-          <text
-            x={clampText(userX, width)}
-            y={baselineY + 18}
-            fill="#ffffff"
-            fontSize={11}
-            fontWeight={800}
-            textAnchor="middle"
-          >
-            나 {topic.fmt(value)}
-          </text>
-        </g>
-      )}
+          나 (상위 {Math.round(result.topPercent)}%)
+        </text>
+      </g>
 
       <line x1={pad.l} y1={baselineY} x2={pad.l + innerW} y2={baselineY} stroke="#ced4da" strokeWidth={1} />
     </svg>
   )
 }
 
-function interpY(points: { x: number; y: number }[], x: number): number {
-  for (let i = 1; i < points.length; i++) {
-    if (points[i].x >= x) {
-      const a = points[i - 1]
-      const b = points[i]
-      const t = (x - a.x) / (b.x - a.x || 1)
-      return a.y + t * (b.y - a.y)
-    }
-  }
-  return points[points.length - 1].y
-}
+
 
 function clampText(x: number, w: number) {
   return Math.min(w - 26, Math.max(26, x))
