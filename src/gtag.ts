@@ -1,4 +1,7 @@
-export const GA_TRACKING_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || ''
+export const GA_TRACKING_ID =
+  import.meta.env.VITE_GA_MEASUREMENT_ID ||
+  import.meta.env.GA_MEASUREMENT_ID ||
+  'G-5335J9HMVZ'
 
 declare global {
   interface Window {
