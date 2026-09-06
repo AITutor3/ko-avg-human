@@ -19,6 +19,8 @@ export interface Topic {
   question: string
   /** 슬라이더 카드 한 줄 소개 */
   teaser: string
+  /** 조회수 (만 단위 수치, 예: 34.2만 -> 34.2) */
+  viewsCount: number
 
   // 입력 슬라이더
   inputLabel: string
@@ -63,6 +65,7 @@ const net_worth: Topic = {
   navTitle: '순자산 위치',
   question: '내 순자산은 대한민국\n또래 중 상위 몇 %일까? 💰',
   teaser: '대한민국 30대 중 상위 17%! 통장 팩폭 실측치 😱',
+  viewsCount: 38.4,
   inputLabel: '순자산 (총자산 − 대출/부채)',
   inputHint: '예적금, 부동산, 주식에서 빚 뺀 진짜 내 순자산',
   min: 0,
@@ -137,6 +140,7 @@ const dating_count: Topic = {
   navTitle: '연애 횟수',
   question: '나는 연애를 또래보다\n많이 한 편일까? ❤️',
   teaser: '연애 경험 상위 23%! 단톡방 찰떡 공유 팩폭 💘',
+  viewsCount: 42.1,
   inputLabel: '총 누적 연애 횟수 (회)',
   inputHint: '지나간 옛 연인 포함 오락성 익명 팩폭치',
   min: 0,
@@ -210,6 +214,7 @@ const income_salary: Topic = {
   navTitle: '연봉 (소득)',
   question: '내 세전 연봉은 대한민국\n또래 중 상위 몇 %일까? 💵',
   teaser: '내 생각 속 위치 vs 실제 대한민국 리얼 연봉 위치 팩폭 💥',
+  viewsCount: 35.6,
   inputLabel: '세전 연간 소득 (연봉 만원)',
   inputHint: '세전 총수령액 (기본급 + 인센티브 + 상여금)',
   min: 1500,
@@ -282,6 +287,7 @@ const ideal_match: Topic = {
   navTitle: '이상형 희소성',
   question: '내 이상형 조건은 대한민국에\n상위 몇 %나 존재할까? 💘',
   teaser: '키 180+ / 연봉 6천+… 대한민국에 생각보다 별로 없다 😱',
+  viewsCount: 29.8,
   inputLabel: '원하는 이상형 조건 수준 (100점 만점)',
   inputHint: '키, 연봉, 학벌, 스타일 종합 까다로움 지수',
   min: 10,
@@ -337,6 +343,7 @@ const marriage_rarity: Topic = {
   navTitle: '결혼시장 희소성',
   question: '결혼 시장에서 나는\n얼마나 희귀한 인재일까? 💍',
   teaser: '대한민국 희귀종 등판! 나와 같은 조건은 100명 중 약 4명꼴 👑',
+  viewsCount: 24.5,
   inputLabel: '내 종합 프로필 매력 스펙트럼 (점수)',
   inputHint: '나이 + 소득 + 자산 + 키 종합 밸런스 점수',
   min: 10,
@@ -392,6 +399,7 @@ const spending_style: Topic = {
   navTitle: '소비 수준',
   question: '한 달에 지르는 돈…\n내 소비 수준은 또래보다 셀까? 💳',
   teaser: '저축형 vs 경험소비형 vs 플렉스 과소비형 캐릭터 팩폭 🛍️',
+  viewsCount: 19.2,
   inputLabel: '한 달 총 소비 지출 (만원)',
   inputHint: '배달, 쇼핑, 카페, 생활비 포함 월 지출',
   min: 30,

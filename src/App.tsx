@@ -172,14 +172,19 @@ function Landing({
 }) {
   const [heroIdx, setHeroIdx] = useState(0)
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setHeroIdx((prev) => (prev + 1) % TOPICS.length)
-    }, 4500)
-    return () => clearInterval(timer)
+  // 조회수 순 TOP 3 주제 필터링
+  const top3Topics = useMemo(() => {
+    return [...TOPICS].sort((a, b) => b.viewsCount - a.viewsCount).slice(0, 3)
   }, [])
 
-  const currentTopic = TOPICS[heroIdx]
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeroIdx((prev) => (prev + 1) % top3Topics.length)
+    }, 4500)
+    return () => clearInterval(timer)
+  }, [top3Topics.length])
+
+  const currentTopic = top3Topics[heroIdx]
 
   return (
     <div className="screen pm-landing-screen">
@@ -193,7 +198,7 @@ function Landing({
         </div>
       )}
 
-      {/* 1. 상단 핑크 팝 메인 배너 (Hero Carousel Banner) */}
+      {/* 1. 상단 핑크 팝 메인 배너 (조회수 Top 3 순환 배너) */}
       <section className="pm-hero-section">
         <div className="pm-hero-card">
           <div className="pm-card-window">
@@ -204,12 +209,12 @@ function Landing({
 
             <div className="pm-card-content">
               <div className="pm-card-left">
-                <div className="pm-card-badge">HOT 팩폭 심테</div>
+                <div className="pm-card-badge">🔥 실시간 인기 TOP {heroIdx + 1}</div>
                 <h1 className="pm-card-title">{currentTopic.question}</h1>
                 <p className="pm-card-sub">{currentTopic.teaser}</p>
 
                 <button className="pm-play-btn" onClick={() => onPick(currentTopic)}>
-                  <span>플레이 하러가기</span>
+                  <span>플레이 하러가기 (▷ {currentTopic.viewsCount}만)</span>
                   <span>→</span>
                 </button>
               </div>
@@ -222,44 +227,42 @@ function Landing({
 
                 <div className="pm-stats-box">
                   <div className="pm-stat-row">
-                    <span>설렘 ★★★★★</span>
-                    <span>공감력 ★★★★★</span>
+                    <span>조회수</span>
+                    <span>▷ {currentTopic.viewsCount}만회</span>
                   </div>
                   <div className="pm-stat-row">
-                    <span>팩폭 ★★★★★</span>
-                    <span>재미 ★★★★★</span>
+                    <span>공감력 ★★★★★</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="pm-page-badge">
-              {heroIdx + 1} / {TOPICS.length}
+              {heroIdx + 1} / {top3Topics.length}
             </div>
           </div>
         </div>
       </section>
 
-      {/* 2. 하단 최신 심테 가로 스크롤 카드 행 */}
+      {/* 2. 하단 전체 심테 가로 스크롤 카드 행 */}
       <section className="pm-section">
         <div className="pm-section-header">
-          <h2>🆕 최신 심테</h2>
+          <h2>🔥 인기 심테 랭킹</h2>
         </div>
 
         <div className="pm-horizontal-scroll">
-          {TOPICS.map((t, idx) => (
+          {TOPICS.map((t) => (
             <div className="pm-test-card" key={t.id} onClick={() => onPick(t)}>
               <div className="pm-thumb-box" style={{ ['--accent-color' as string]: t.accent } as React.CSSProperties}>
-                <div className="pm-thumb-badge">NEW</div>
                 <div className="pm-thumb-emoji">{t.emoji}</div>
                 <div className="pm-thumb-title">{t.navTitle}</div>
                 <div className="pm-thumb-mini-stats">
-                  <span>팩폭 ★★★★★</span>
+                  <span>▷ {t.viewsCount}만회</span>
                 </div>
               </div>
               <div className="pm-test-title">{t.question.split('\n')[0]}</div>
               <div className="pm-test-views">
-                <span>▷</span> {(1.2 + (idx % 5) * 0.4).toFixed(1)}만
+                <span>▷</span> {t.viewsCount}만 참여
               </div>
             </div>
           ))}
@@ -269,17 +272,17 @@ function Landing({
       {/* 3. 인기 팩폭 심테 2열 카드 섹션 */}
       <section className="pm-section" style={{ marginTop: 24, marginBottom: 20 }}>
         <div className="pm-section-header">
-          <h2>🔥 추천 팩폭 대결</h2>
+          <h2>🎯 전체 팩폭 테스트 목록</h2>
         </div>
         <div className="pm-grid-2col">
-          {TOPICS.slice(0, 4).map((t) => (
+          {TOPICS.map((t) => (
             <div className="pm-grid-item" key={t.id} onClick={() => onPick(t)}>
               <div className="pm-grid-thumb" style={{ background: t.accent }}>
                 <span>{t.emoji}</span>
               </div>
               <div className="pm-grid-info">
                 <div className="pm-grid-title">{t.navTitle}</div>
-                <div className="pm-grid-desc">{t.teaser}</div>
+                <div className="pm-grid-desc">▷ {t.viewsCount}만회 참여</div>
               </div>
             </div>
           ))}
