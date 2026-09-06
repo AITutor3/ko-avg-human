@@ -53,19 +53,19 @@ export default function DistributionChart({
       role="img"
       aria-label={`분포곡선에서 내 위치는 상위 ${Math.round(result.topPercent)}%`}
     >
-      <path d={fill} fill={hexA(accent, 0.22)} />
-      <path d={line} fill="none" stroke="#8a8a96" strokeWidth={2} />
+      <path d={fill} fill={hexA(accent, 0.18)} />
+      <path d={line} fill="none" stroke="#495057" strokeWidth={2.5} />
       <line
         x1={meanX}
         y1={pad.t}
         x2={meanX}
         y2={baselineY}
-        stroke="#6c8cff"
+        stroke="#4c6ef5"
         strokeWidth={1.5}
         strokeDasharray="4 4"
       />
       {!compact && (
-        <text x={clampText(meanX, width)} y={pad.t - 5} fill="#6c8cff" fontSize={10} fontWeight={700} textAnchor="middle">
+        <text x={clampText(meanX, width)} y={pad.t - 5} fill="#4c6ef5" fontSize={10} fontWeight={700} textAnchor="middle">
           평균 {topic.fmt(model.median)}
         </text>
       )}
@@ -83,7 +83,7 @@ export default function DistributionChart({
           나 {topic.fmt(value)}
         </text>
       )}
-      <line x1={pad.l} y1={baselineY} x2={pad.l + innerW} y2={baselineY} stroke="#2a2a34" strokeWidth={1} />
+      <line x1={pad.l} y1={baselineY} x2={pad.l + innerW} y2={baselineY} stroke="#ced4da" strokeWidth={1} />
     </svg>
   )
 }

@@ -7,7 +7,8 @@ export const verdict = (r: Result) => r.topic.verdict(r)
 export const label = (r: Result) => r.topic.labels(r.topPercent)
 
 export const subline = (r: Result) =>
-  `${r.model.label} 기준 · 상위 ${Math.round(r.topPercent)}%`
+  `${r.model.label} 기준 🔥 상위 ${Math.round(r.topPercent)}%`
 
 export const intuitiveLine = (r: Result) =>
-  `비슷한 100명 중 ${r.peopleBelow}명보다 ${r.topic.compareVerb}`
+  `또래 100명 세워두면 당신이 ${r.peopleBelow}명 제침! 💥`
+

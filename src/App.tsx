@@ -9,10 +9,12 @@ import {
   type Result,
 } from './stats'
 import { TOPICS, type Topic } from './topics'
-import { headline, intuitiveLine, label, resultTitle, subline, verdict } from './copy'
+import { headline, intuitiveLine, resultTitle, subline, verdict } from './copy'
 import DistributionChart from './DistributionChart'
+import TypeResultCard from './TypeResultCard'
 
 type Stage = 'landing' | 'input' | 'analyzing' | 'chart' | 'card' | 'spread'
+
 
 export default function App() {
   const [stage, setStage] = useState<Stage>('landing')
@@ -72,57 +74,151 @@ export default function App() {
   )
 }
 
+function HeaderBar() {
+  return (
+    <header className="pm-header">
+      <button className="pm-icon-btn" aria-label="메뉴">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      <div className="pm-logo">
+        <div className="pm-logo-dots">
+          <span className="dot-b1" />
+          <span className="dot-b2" />
+        </div>
+        <span className="pm-logo-text">평균인간</span>
+      </div>
+
+      <div className="pm-header-right">
+        <button className="pm-icon-btn" aria-label="검색">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </button>
+        <button className="pm-icon-btn" aria-label="마이페이지">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </button>
+      </div>
+    </header>
+  )
+}
+
 function Landing({ onPick }: { onPick: (t: Topic) => void }) {
-  const trackRef = useRef<HTMLDivElement>(null)
-  const [idx, setIdx] = useState(0)
+  const [heroIdx, setHeroIdx] = useState(0)
 
-  function onScroll() {
-    const el = trackRef.current
-    if (!el) return
-    const i = Math.round(el.scrollLeft / el.clientWidth)
-    if (i !== idx) setIdx(i)
-  }
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeroIdx((prev) => (prev + 1) % TOPICS.length)
+    }, 4500)
+    return () => clearInterval(timer)
+  }, [])
 
-  function go(i: number) {
-    const el = trackRef.current
-    if (!el) return
-    el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' })
-  }
+  const currentTopic = TOPICS[heroIdx]
 
   return (
-    <div className="screen landing">
-      <div className="brand">나 어디쯤</div>
-      <p className="lead" style={{ marginTop: 8 }}>
-        궁금한 걸 골라보세요. 옆으로 넘기면 주제가 바뀌어요.
-      </p>
+    <div className="screen pm-landing-screen">
+      <HeaderBar />
 
-      <div className="slider" ref={trackRef} onScroll={onScroll}>
-        {TOPICS.map((t) => (
-          <article className="slide" key={t.id}>
-            <div className="slide-card" style={{ ['--accent' as string]: t.accent } as React.CSSProperties}>
-              <div className="slide-emoji">{t.emoji}</div>
-              <div className="slide-kicker">{t.navTitle}</div>
-              <h1 className="slide-q">{t.question}</h1>
-              <p className="slide-teaser">{t.teaser}</p>
-              <div className="spacer" />
-              <button className="btn" onClick={() => onPick(t)}>
-                이 주제로 시작
-              </button>
+      {/* 1. 상단 핑크 팝 메인 배너 (Hero Carousel Banner) */}
+      <section className="pm-hero-section">
+        <div className="pm-hero-card">
+          <div className="pm-card-window">
+            <div className="pm-window-header">
+              <span className="window-btn" />
+              <span className="window-btn" />
             </div>
-          </article>
-        ))}
-      </div>
 
-      <div className="dots">
-        {TOPICS.map((t, i) => (
-          <button
-            key={t.id}
-            className={`dot${i === idx ? ' on' : ''}`}
-            aria-label={`${t.navTitle}로 이동`}
-            onClick={() => go(i)}
-          />
-        ))}
-      </div>
+            <div className="pm-card-content">
+              <div className="pm-card-left">
+                <div className="pm-card-badge">HOT 팩폭 심테</div>
+                <h1 className="pm-card-title">{currentTopic.question}</h1>
+                <p className="pm-card-sub">{currentTopic.teaser}</p>
+
+                <button className="pm-play-btn" onClick={() => onPick(currentTopic)}>
+                  <span>플레이 하러가기</span>
+                  <span>→</span>
+                </button>
+              </div>
+
+              <div className="pm-card-right">
+                <div className="pm-character-box">
+                  <div className="pm-heart-icon">💖</div>
+                  <div className="pm-bear-avatar">{currentTopic.emoji}</div>
+                </div>
+
+                <div className="pm-stats-box">
+                  <div className="pm-stat-row">
+                    <span>설렘 ★★★★★</span>
+                    <span>공감력 ★★★★★</span>
+                  </div>
+                  <div className="pm-stat-row">
+                    <span>팩폭 ★★★★★</span>
+                    <span>재미 ★★★★★</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pm-page-badge">
+              {heroIdx + 1} / {TOPICS.length}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. 하단 최신 심테 가로 스크롤 카드 행 */}
+      <section className="pm-section">
+        <div className="pm-section-header">
+          <h2>🆕 최신 심테</h2>
+        </div>
+
+        <div className="pm-horizontal-scroll">
+          {TOPICS.map((t, idx) => (
+            <div className="pm-test-card" key={t.id} onClick={() => onPick(t)}>
+              <div className="pm-thumb-box" style={{ ['--accent-color' as string]: t.accent } as React.CSSProperties}>
+                <div className="pm-thumb-badge">NEW</div>
+                <div className="pm-thumb-emoji">{t.emoji}</div>
+                <div className="pm-thumb-title">{t.navTitle}</div>
+                <div className="pm-thumb-mini-stats">
+                  <span>팩폭 ★★★★★</span>
+                </div>
+              </div>
+              <div className="pm-test-title">{t.question.split('\n')[0]}</div>
+              <div className="pm-test-views">
+                <span>▷</span> {(1.2 + (idx % 5) * 0.4).toFixed(1)}만
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 3. 인기 팩폭 심테 2열 카드 섹션 */}
+      <section className="pm-section" style={{ marginTop: 24, marginBottom: 20 }}>
+        <div className="pm-section-header">
+          <h2>🔥 추천 팩폭 대결</h2>
+        </div>
+        <div className="pm-grid-2col">
+          {TOPICS.slice(0, 4).map((t) => (
+            <div className="pm-grid-item" key={t.id} onClick={() => onPick(t)}>
+              <div className="pm-grid-thumb" style={{ background: t.accent }}>
+                <span>{t.emoji}</span>
+              </div>
+              <div className="pm-grid-info">
+                <div className="pm-grid-title">{t.navTitle}</div>
+                <div className="pm-grid-desc">{t.teaser}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }
@@ -151,7 +247,7 @@ function InputScreen({
   return (
     <div className="screen">
       <button className="link-back" onClick={onBack}>
-        ← 주제 다시 고르기
+        ← 다른 주제 고르기
       </button>
       <div className="brand" style={{ marginTop: 6 }}>
         {topic.emoji} {topic.navTitle}
@@ -159,7 +255,7 @@ function InputScreen({
       <h1 style={{ fontSize: 21, marginTop: 14 }}>{topic.question}</h1>
 
       <div className="field">
-        <label>나이대</label>
+        <label>나이대 선택</label>
         <div className="chips">
           {AGE_OPTIONS.map((o) => (
             <button
@@ -174,7 +270,7 @@ function InputScreen({
       </div>
 
       <div className="field">
-        <label>성별</label>
+        <label>성별 선택</label>
         <div className="chips">
           {GENDER_OPTIONS.map((o) => (
             <button
@@ -206,16 +302,16 @@ function InputScreen({
 
       <div className="spacer" />
       <button className="btn" disabled={!age || !gender} onClick={onNext}>
-        결과 보기
+        🔥 팩폭 결과 확인하기
       </button>
     </div>
   )
 }
 
 const STEPS = [
-  '비슷한 조건의 사람들과 비교 중…',
-  '분포곡선 위에서 내 위치를 찾는 중…',
-  '상위 몇 %인지 계산 중…',
+  '비슷한 조건 또래 팩폭 데이터 추출 중… 📊',
+  '분포곡선 위에서 내 리얼 위치 검색 중… 🔍',
+  '팩폭 결과 준비 완료! 멘탈 잡으세요 💥',
 ]
 
 function Analyzing({ result, onDone }: { result: Result; onDone: () => void }) {
@@ -233,14 +329,13 @@ function Analyzing({ result, onDone }: { result: Result; onDone: () => void }) {
   return (
     <div className="screen analyzing">
       <div className="ring" />
-      <div style={{ fontWeight: 800 }}>{result.model.label} 기준으로 분석 중</div>
+      <div style={{ fontWeight: 800 }}>{result.model.label} 기준 팩폭 분석 중</div>
       <div className="step">{STEPS[i]}</div>
     </div>
   )
 }
 
 function ChartScreen({ result, onNext }: { result: Result; onNext: () => void }) {
-  const lab = label(result)
   return (
     <div className="screen">
       <div className="brand">
@@ -253,6 +348,10 @@ function ChartScreen({ result, onNext }: { result: Result; onNext: () => void })
 
       <div className="card-wrap" style={{ marginTop: 22 }}>
         <DistributionChart result={result} width={330} height={180} />
+      </div>
+
+      <div style={{ marginTop: 18 }}>
+        <TypeResultCard result={result} />
       </div>
 
       <div className="stats">
@@ -276,14 +375,9 @@ function ChartScreen({ result, onNext }: { result: Result; onNext: () => void })
       <div className="verdict">{verdict(result)}</div>
       <div className="intuitive">{intuitiveLine(result)}</div>
 
-      <div className="label-pill">
-        <span>{lab.emoji}</span>
-        {lab.name}
-      </div>
-
       <div className="spacer" />
       <button className="btn" onClick={onNext}>
-        공유 카드 만들기
+        🔥 팩폭 공유 카드 만들기
       </button>
     </div>
   )
@@ -296,21 +390,20 @@ function ShareCard({
   result: Result
   innerRef?: React.Ref<HTMLDivElement>
 }) {
-  const lab = label(result)
   return (
     <div className="card" ref={innerRef} style={{ ['--accent' as string]: result.topic.accent } as React.CSSProperties}>
-      <div className="c-brand">나 어디쯤 · {result.topic.navTitle}</div>
+      <div className="c-brand">평균인간 · {result.topic.navTitle}</div>
       <div className="c-head">{headline(result)}</div>
       <div className="c-sub">
         {subline(result)} · {intuitiveLine(result)}
       </div>
-      <div style={{ marginTop: 16 }}>
-        <DistributionChart result={result} width={270} height={120} compact />
+      <div style={{ marginTop: 14 }}>
+        <DistributionChart result={result} width={270} height={110} compact />
       </div>
-      <div className="c-label">
-        {lab.emoji} {lab.name}
+      <div style={{ marginTop: 10 }}>
+        <TypeResultCard result={result} />
       </div>
-      <div className="c-cta">너는 상위 몇 %야? · 나 어디쯤에서 확인</div>
+      <div className="c-cta">너는 상위 몇 %야? · 평균인간에서 확인</div>
     </div>
   )
 }
@@ -336,10 +429,10 @@ function CardScreen({ result, onNext }: { result: Result; onNext: () => void }) 
       const file = new File([blob], 'na-eodijjeum.png', { type: 'image/png' })
       const navAny = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
       if (navAny.canShare && navAny.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], text: '나 이거 해봤는데 은근 충격. 너는?' })
+        await navigator.share({ files: [file], text: '나 이거 해봤는데 진짜 팩폭 당함😱 너는 상위 몇 % 나와?' })
       } else {
         downloadBlob(blob)
-        setMsg('이미지를 저장했어요. 스토리·피드에 올려보세요!')
+        setMsg('이미지를 저장했어요. 스토리·피드에 자랑해보세요!')
       }
     } catch {
       setMsg('공유가 취소됐어요.')
@@ -370,7 +463,7 @@ function CardScreen({ result, onNext }: { result: Result; onNext: () => void }) 
       </div>
       <div className="stack">
         <button className="btn" disabled={busy} onClick={onShare}>
-          {busy ? '만드는 중…' : '카드 공유하기'}
+          {busy ? '만드는 중…' : '🔥 친구한테 결과 보내서 팩폭하기'}
         </button>
         <button className="btn ghost" disabled={busy} onClick={onSave}>
           이미지 저장
@@ -390,16 +483,16 @@ function Spread({ onRestart }: { onRestart: () => void }) {
     <div className="screen">
       <div className="brand">더 해보기</div>
       <div className="spacer" />
-      <h1 style={{ fontSize: 22 }}>{'친구는 어디쯤일까?\n같이 해보면 은근 충격적임'}</h1>
-      <p className="lead">이 링크를 그대로 보내면 친구도 10초 만에 자기 위치를 확인할 수 있어요.</p>
+      <h1 style={{ fontSize: 22 }}>{'친구는 상위 몇 %일까? 😈\n링크 공유해서 팩폭 대결 가자!'}</h1>
+      <p className="lead">이 링크 공유하면 친구도 10초 만에 자기 리얼 위치가 털려요 💥</p>
       <div className="stack" style={{ marginTop: 24 }}>
         <button
           className="btn"
           onClick={async () => {
             try {
               await navigator.share({
-                title: '나 어디쯤',
-                text: '너는 상위 몇 %야? 나 이거 해봤는데 은근 충격',
+                title: '평균인간',
+                text: '너는 상위 몇 %야? 나 이거 해봤는데 진짜 팩폭 멘붕 옴 😱',
                 url: location.href,
               })
             } catch {
@@ -407,10 +500,10 @@ function Spread({ onRestart }: { onRestart: () => void }) {
             }
           }}
         >
-          친구에게 링크 보내기
+          🔥 친구에게 팩폭 링크 보내기
         </button>
         <button className="btn ghost" onClick={onRestart}>
-          다른 주제도 해보기
+          다른 주제도 팩폭 측정하기
         </button>
       </div>
       <div className="spacer" />

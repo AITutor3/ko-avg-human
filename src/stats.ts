@@ -126,3 +126,13 @@ export function fmtDuration(min: number): string {
 export function fmtHours(h: number): string {
   return fmtDuration(Math.abs(h) * 60)
 }
+
+export function fmtAsset(manwon: number): string {
+  if (manwon <= 0) return '0원'
+  const eok = Math.floor(manwon / 10000)
+  const remainder = Math.round(manwon % 10000)
+  if (eok === 0) return `${remainder.toLocaleString()}만원`
+  if (remainder === 0) return `${eok}억원`
+  return `${eok}억 ${remainder.toLocaleString()}만원`
+}
+
