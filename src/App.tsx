@@ -386,7 +386,7 @@ function ChartScreen({
         </div>
 
         <div style={{ marginTop: 12 }}>
-          <TypeResultCard result={result} />
+          <TypeResultCard result={result} onShare={onShare} onSave={onSave} />
         </div>
 
         {/* 수치 3열 박스 */}

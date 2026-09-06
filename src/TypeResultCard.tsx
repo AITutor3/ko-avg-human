@@ -1,7 +1,13 @@
 import type { Result } from './stats'
 import { label } from './copy'
 
-export default function TypeResultCard({ result }: { result: Result }) {
+interface Props {
+  result: Result
+  onShare?: () => void
+  onSave?: () => void
+}
+
+export default function TypeResultCard({ result, onShare, onSave }: Props) {
   const lab = label(result)
   const card = lab.card ?? {
     badgeTitle: lab.name,
@@ -53,6 +59,24 @@ export default function TypeResultCard({ result }: { result: Result }) {
           상위 {Math.round(result.topPercent)}% · {lab.name}
         </div>
       </div>
+
+      {/* 상징 버튼 그룹 (공유하기 & 이미지 저장하기) */}
+      {(onShare || onSave) && (
+        <div className="type-card-actions">
+          {onShare && (
+            <button className="icon-action-btn share-btn" title="공유하기" onClick={onShare}>
+              <span className="icon">🚀</span>
+              <span className="label">공유하기</span>
+            </button>
+          )}
+          {onSave && (
+            <button className="icon-action-btn save-btn" title="이미지 저장하기" onClick={onSave}>
+              <span className="icon">💾</span>
+              <span className="label">저장하기</span>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
