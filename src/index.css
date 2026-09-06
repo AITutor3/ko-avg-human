@@ -1371,6 +1371,77 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 34px; }
   box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
 }
 
+/* 5. 종합 팩폭 분석 리포트 카드 */
+.summary-report-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+  border: 1px solid #dbeafe;
+  border-radius: 20px;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-report-card .report-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.summary-report-card .report-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.summary-report-card .report-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.6;
+  word-break: keep-all;
+  min-height: 52px;
+}
+
+.typing-cursor {
+  display: inline-block;
+  color: #2563eb;
+  font-weight: 900;
+  margin-left: 2px;
+  animation: blink-cursor 0.7s infinite;
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-pop {
+  animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
 /* 4. 최하단 verdict 문구 및 푸터 */
 .result-footer-section {
   display: flex;

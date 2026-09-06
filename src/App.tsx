@@ -9,7 +9,7 @@ import {
   type Result,
 } from './stats'
 import { TOPICS, type Topic } from './topics'
-import { headline, intuitiveLine, verdict } from './copy'
+import { comprehensiveSummary, headline, verdict } from './copy'
 import DistributionChart from './DistributionChart'
 import TypeResultCard from './TypeResultCard'
 
@@ -431,6 +431,35 @@ function ChartScreen({
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
+  // 순차 등장 Step (1: 캐릭터 카드 먼저 등장, 2: 종합 리포트 및 수치 카드 등장)
+  const [step, setStep] = useState(1)
+  const fullText = useMemo(() => comprehensiveSummary(result), [result])
+  const [typedText, setTypedText] = useState('')
+
+  // 1단계 -> 2단계 순차 전환 (0.8초 후)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setStep(2)
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // 2단계 전환 후 타이핑 효과 시작
+  useEffect(() => {
+    if (step < 2) return
+    let index = 0
+    setTypedText('')
+    const interval = setInterval(() => {
+      if (index < fullText.length) {
+        setTypedText(fullText.slice(0, index + 1))
+        index++
+      } else {
+        clearInterval(interval)
+      }
+    }, 30)
+    return () => clearInterval(interval)
+  }, [step, fullText])
+
   async function render(): Promise<Blob | null> {
     const target = characterCardRef.current || cardRef.current
     if (!target) return null
@@ -507,50 +536,63 @@ function ChartScreen({
           </div>
         </div>
 
-        {/* 2. 캐릭터 카드 (독립형 카드 - 공유/저장 캡처 대상) */}
-        <div className="card-box character-card-box">
+        {/* 2. 캐릭터 카드 (1단계: 가장 먼저 등장) */}
+        <div className="card-box character-card-box animate-pop">
           <TypeResultCard result={result} onShare={onShare} onSave={onSave} busy={busy} cardInnerRef={characterCardRef} />
         </div>
 
-        {/* 3. 분포 곡선 차트 카드 (독립형 카드) */}
-        <div className="card-box chart-card-box">
-          <div className="chart-card-header">
-            <span className="chart-title">또래 {result.topic.navTitle} 분포 곡선</span>
-            <span className="chart-highlight-badge">상위 {Math.round(result.topPercent)}% 지점</span>
-          </div>
-          <div className="chart-svg-container">
-            <DistributionChart result={result} width={310} height={135} compact />
-          </div>
-        </div>
+        {/* 3. 종합 팩폭 리포트 분석 카드 (2단계: 캐릭터 카드 다음 순차적으로 등장) */}
+        {step >= 2 && (
+          <div className="card-box summary-report-card animate-fade-up">
+            <div className="report-card-header">
+              <span className="report-badge">📋 종합 분석 리포트</span>
+              <span className="chart-highlight-badge">상위 {Math.round(result.topPercent)}% 지점</span>
+            </div>
+            
+            {/* 차트 영역 */}
+            <div className="chart-svg-container" style={{ margin: '8px 0' }}>
+              <DistributionChart result={result} width={310} height={135} compact />
+            </div>
 
-        {/* 4. 3열 수치 박스 (독립형 3개 카드로 구성, 중앙 '나' 박스 강조) */}
-        <div className="stats-triple-row">
-          <div className="stat-box">
-            <span className="stat-label">또래 평균</span>
-            <b className="stat-val">{result.topic.fmt(result.model.median)}</b>
+            {/* 리포트 타이핑 효과 텍스트 */}
+            <p className="report-text typed-text-area">
+              {typedText}
+              {typedText.length < fullText.length && <span className="typing-cursor">|</span>}
+            </p>
           </div>
-          <div className="stat-box me-highlight-box">
-            <div className="me-top-tag">나</div>
-            <span className="stat-label">내 {result.topic.navTitle.replace(' 위치', '')}</span>
-            <b className="stat-val me-val">{result.topic.fmt(result.value)}</b>
-          </div>
-          <div className="stat-box">
-            <span className="stat-label">차이</span>
-            <b className="stat-val diff-val">
-              {result.diff >= 0 ? '+' : '−'}
-              {result.topic.fmt(Math.abs(result.diff))}
-            </b>
-          </div>
-        </div>
+        )}
 
-        {/* 5. 최하단 팩폭 문구 & 브랜딩 푸터 */}
-        <div className="result-footer-section">
-          <h3 className="verdict-title">{verdict(result)}</h3>
-          <p className="verdict-sub">{intuitiveLine(result)}</p>
-          <div className="footer-viral-text">
-            너는 상위 몇 %야? · <span className="brand-link">평균인간에서 확인</span>
+        {/* 4. 3열 수치 박스 (2단계 순차 등장) */}
+        {step >= 2 && (
+          <div className="stats-triple-row animate-fade-up">
+            <div className="stat-box">
+              <span className="stat-label">또래 평균</span>
+              <b className="stat-val">{result.topic.fmt(result.model.median)}</b>
+            </div>
+            <div className="stat-box me-highlight-box">
+              <div className="me-top-tag">나</div>
+              <span className="stat-label">내 {result.topic.navTitle.replace(' 위치', '')}</span>
+              <b className="stat-val me-val">{result.topic.fmt(result.value)}</b>
+            </div>
+            <div className="stat-box">
+              <span className="stat-label">차이</span>
+              <b className="stat-val diff-val">
+                {result.diff >= 0 ? '+' : '−'}
+                {result.topic.fmt(Math.abs(result.diff))}
+              </b>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* 5. 최하단 팩폭 문구 & 브랜딩 푸터 (2단계) */}
+        {step >= 2 && (
+          <div className="result-footer-section animate-fade-up">
+            <h3 className="verdict-title">{verdict(result)}</h3>
+            <div className="footer-viral-text">
+              너는 상위 몇 %야? · <span className="brand-link">평균인간에서 확인</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {msg && <p className="mini-hint">{msg}</p>}
