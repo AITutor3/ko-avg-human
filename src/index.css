@@ -171,27 +171,27 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 34px; }
 .verdict { margin-top: 16px; font-size: 15px; font-weight: 700; color: var(--fg); }
 .intuitive { margin-top: 6px; color: var(--muted); font-size: 13px; }
 
-.card-wrap { margin-top: 16px; display: flex; justify-content: center; }
-
-/* 공유 카드 (캡처 대상) */
-.card {
-  width: 320px;
-  aspect-ratio: 4 / 5;
+/* 결과 화면과 공유 이미지에 함께 쓰이는 단일 카드 */
+.result-card {
+  width: 100%;
   background: linear-gradient(160deg, #ffffff 0%, #f4f6fa 100%);
   border: 1px solid var(--line);
   border-radius: 24px;
-  padding: 24px 22px;
+  padding: 22px 18px;
   display: flex;
   flex-direction: column;
   color: var(--fg);
   position: relative;
-  overflow: hidden;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
 }
-.card .c-brand { font-size: 11px; letter-spacing: 0.16em; color: var(--accent-2); font-weight: 800; }
-.card .c-head { font-size: 21px; font-weight: 800; line-height: 1.35; letter-spacing: -0.02em; margin-top: 12px; white-space: pre-line; color: var(--fg); }
-.card .c-sub { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 8px; }
-.card .c-cta { font-size: 11px; color: var(--muted); margin-top: auto; text-align: center; }
+.result-card-content { margin-top: 14px; }
+.result-card-content,
+.result-card svg[role='img'] { max-width: 100%; }
+.result-card svg[role='img'] { height: auto; }
+.result-card .c-brand { font-size: 11px; letter-spacing: 0.16em; color: var(--accent-2); font-weight: 800; }
+.result-card .c-head { font-size: 21px; font-weight: 800; line-height: 1.35; letter-spacing: -0.02em; margin-top: 12px; white-space: pre-line; color: var(--fg); }
+.result-card .c-sub { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 8px; }
+.result-card .c-cta { font-size: 11px; color: var(--muted); margin-top: auto; text-align: center; }
 
 .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
 .mini-hint { text-align: center; color: var(--muted); font-size: 12px; margin-top: 14px; }
@@ -884,5 +884,3 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 34px; }
   color: var(--fg);
   cursor: pointer;
 }
-
-

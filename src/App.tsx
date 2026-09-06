@@ -9,7 +9,7 @@ import {
   type Result,
 } from './stats'
 import { TOPICS, type Topic } from './topics'
-import { headline, intuitiveLine, resultTitle, subline, verdict } from './copy'
+import { headline, intuitiveLine, subline, verdict } from './copy'
 import DistributionChart from './DistributionChart'
 import TypeResultCard from './TypeResultCard'
 
@@ -360,55 +360,13 @@ function ChartScreen({
   }
 
   return (
-    <div className="screen">
-      <div className="brand">
-        {result.topic.emoji} {result.topic.navTitle} 팩폭 결과
-      </div>
-      <h2 className="result-title" style={{ marginTop: 12 }}>
-        {resultTitle(result)}
-      </h2>
-      <div className="result-sub">{subline(result)}</div>
-
-      <div className="card-wrap" style={{ marginTop: 22 }}>
-        <DistributionChart result={result} width={330} height={180} />
+    <div className="screen" style={{ padding: '16px 12px' }}>
+      {/* 바깥 상단 중복 텍스트 제거 및 깔끔한 단일 카드 레이아웃 */}
+      <div className="card-wrap" style={{ marginTop: 0 }}>
+        <ShareCard result={result} innerRef={cardRef} />
       </div>
 
-      <div style={{ marginTop: 18 }}>
-        <TypeResultCard result={result} />
-      </div>
-
-      <div className="stats">
-        <div className="stat">
-          <b>{result.topic.fmt(result.model.median)}</b>
-          <span>또래 평균</span>
-        </div>
-        <div className="stat">
-          <b>{result.topic.fmt(result.value)}</b>
-          <span>나</span>
-        </div>
-        <div className="stat">
-          <b>
-            {result.diff >= 0 ? '+' : '−'}
-            {result.topic.fmt(Math.abs(result.diff))}
-          </b>
-          <span>차이</span>
-        </div>
-      </div>
-
-      <div className="verdict">{verdict(result)}</div>
-      <div className="intuitive">{intuitiveLine(result)}</div>
-
-      {/* 내 결과 공유 카드 미리보기 및 바로 공유 버튼 */}
-      <div style={{ marginTop: 28, marginBottom: 12 }}>
-        <div className="brand" style={{ marginBottom: 10, textAlign: 'center' }}>
-          📸 팩폭 공유 카드
-        </div>
-        <div className="card-wrap">
-          <ShareCard result={result} innerRef={cardRef} />
-        </div>
-      </div>
-
-      <div className="stack" style={{ marginTop: 16 }}>
+      <div className="stack" style={{ marginTop: 20 }}>
         <button className="btn" disabled={busy} onClick={onShare}>
           {busy ? '카드 생성 중…' : '🚀 친구 단톡방에 팩폭 결과 공유하기'}
         </button>
@@ -436,17 +394,46 @@ function ShareCard({
   return (
     <div className="card" ref={innerRef} style={{ ['--accent' as string]: result.topic.accent } as React.CSSProperties}>
       <div className="c-brand">평균인간 · {result.topic.navTitle}</div>
-      <div className="c-head">{headline(result)}</div>
-      <div className="c-sub">
-        {subline(result)} · {intuitiveLine(result)}
+      <h2 className="c-head" style={{ marginTop: 8 }}>{headline(result)}</h2>
+      <div className="c-sub" style={{ marginTop: 4, marginBottom: 8 }}>
+        {subline(result)}
       </div>
-      <div style={{ marginTop: 14 }}>
-        <DistributionChart result={result} width={270} height={110} compact />
-      </div>
+
       <div style={{ marginTop: 10 }}>
+        <DistributionChart result={result} width={290} height={125} compact />
+      </div>
+
+      <div style={{ marginTop: 12 }}>
         <TypeResultCard result={result} />
       </div>
-      <div className="c-cta">너는 상위 몇 %야? · 평균인간에서 확인</div>
+
+      {/* 수치 3열 박스도 바깥 카드 안으로 포함 */}
+      <div className="stats" style={{ marginTop: 12 }}>
+        <div className="stat">
+          <b>{result.topic.fmt(result.model.median)}</b>
+          <span>또래 평균</span>
+        </div>
+        <div className="stat">
+          <b>{result.topic.fmt(result.value)}</b>
+          <span>나</span>
+        </div>
+        <div className="stat">
+          <b>
+            {result.diff >= 0 ? '+' : '−'}
+            {result.topic.fmt(Math.abs(result.diff))}
+          </b>
+          <span>차이</span>
+        </div>
+      </div>
+
+      <div className="verdict" style={{ marginTop: 14, textAlign: 'center', fontSize: 14, fontWeight: 800 }}>
+        {verdict(result)}
+      </div>
+      <div className="intuitive" style={{ marginTop: 4, textAlign: 'center', fontSize: 12 }}>
+        {intuitiveLine(result)}
+      </div>
+
+      <div className="c-cta" style={{ marginTop: 16 }}>너는 상위 몇 %야? · 평균인간에서 확인</div>
     </div>
   )
 }
