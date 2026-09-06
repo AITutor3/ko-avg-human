@@ -5,9 +5,10 @@ interface Props {
   result: Result
   onShare?: () => void
   onSave?: () => void
+  busy?: boolean
 }
 
-export default function TypeResultCard({ result, onShare, onSave }: Props) {
+export default function TypeResultCard({ result, onShare, onSave, busy }: Props) {
   const lab = label(result)
   const card = lab.card ?? {
     badgeTitle: lab.name,
@@ -64,13 +65,13 @@ export default function TypeResultCard({ result, onShare, onSave }: Props) {
       {(onShare || onSave) && (
         <div className="type-card-actions">
           {onShare && (
-            <button className="icon-action-btn share-btn" title="공유하기" onClick={onShare}>
+            <button className="icon-action-btn share-btn" title="공유하기" disabled={busy} onClick={onShare}>
               <span className="icon">🚀</span>
-              <span className="label">공유하기</span>
+              <span className="label">{busy ? '생성 중…' : '공유하기'}</span>
             </button>
           )}
           {onSave && (
-            <button className="icon-action-btn save-btn" title="이미지 저장하기" onClick={onSave}>
+            <button className="icon-action-btn save-btn" title="이미지 저장하기" disabled={busy} onClick={onSave}>
               <span className="icon">💾</span>
               <span className="label">저장하기</span>
             </button>

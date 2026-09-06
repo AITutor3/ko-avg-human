@@ -377,19 +377,21 @@ function ChartScreen({
 
         <div className="c-brand">평균인간 · {result.topic.navTitle}</div>
         <h2 className="c-head" style={{ marginTop: 8 }}>{headline(result)}</h2>
-        <div className="c-sub" style={{ marginTop: 4, marginBottom: 8 }}>
+        <div className="c-sub" style={{ marginTop: 4, marginBottom: 12 }}>
           {subline(result)}
         </div>
 
-        <div style={{ marginTop: 10 }}>
+        {/* 1. 캐릭터 카드 (소제목 포함) */}
+        <div style={{ marginTop: 4, marginBottom: 14 }}>
+          <TypeResultCard result={result} onShare={onShare} onSave={onSave} busy={busy} />
+        </div>
+
+        {/* 2. 그 아래 정규분포 차트 */}
+        <div style={{ marginTop: 6, marginBottom: 10 }}>
           <DistributionChart result={result} width={290} height={125} compact />
         </div>
 
-        <div style={{ marginTop: 12 }}>
-          <TypeResultCard result={result} onShare={onShare} onSave={onSave} />
-        </div>
-
-        {/* 수치 3열 박스 */}
+        {/* 3. 수치 3열 박스 */}
         <div className="stats" style={{ marginTop: 14 }}>
           <div className="stat">
             <b>{result.topic.fmt(result.model.median)}</b>
@@ -418,18 +420,10 @@ function ChartScreen({
         <div className="c-cta" style={{ marginTop: 16 }}>너는 상위 몇 %야? · 평균인간에서 확인</div>
       </div>
 
-      <div className="stack" style={{ marginTop: 20 }}>
-        <button className="btn" disabled={busy} onClick={onShare}>
-          {busy ? '카드 생성 중…' : '🚀 친구 단톡방에 팩폭 결과 공유하기'}
-        </button>
-        <button className="btn ghost" disabled={busy} onClick={onSave}>
-          💾 카드 이미지 저장하기
-        </button>
-      </div>
       {msg && <p className="mini-hint">{msg}</p>}
 
       <div className="spacer" style={{ minHeight: 20 }} />
-      <button className="btn ghost" onClick={onRestart} style={{ marginBottom: 12 }}>
+      <button className="btn ghost" onClick={onRestart} style={{ marginBottom: 12, marginTop: 16 }}>
         🔄 다른 테스트도 해보기
       </button>
     </div>
