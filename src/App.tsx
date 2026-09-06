@@ -13,10 +13,7 @@ import { headline, intuitiveLine, resultTitle, subline, verdict } from './copy'
 import DistributionChart from './DistributionChart'
 import TypeResultCard from './TypeResultCard'
 
-import { computeOverallUniqueness } from './stats'
-import { OverallResultCard } from './OverallResultCard'
-
-type Stage = 'landing' | 'input' | 'analyzing' | 'chart' | 'card' | 'spread' | 'overall'
+type Stage = 'landing' | 'input' | 'analyzing' | 'chart'
 
 export default function App() {
   const [stage, setStage] = useState<Stage>('landing')
@@ -24,16 +21,10 @@ export default function App() {
   const [age, setAge] = useState<AgeBucket | null>(null)
   const [gender, setGender] = useState<Gender | null>(null)
   const [value, setValue] = useState(4)
-  const [historyResults, setHistoryResults] = useState<Result[]>([])
 
   const result = useMemo<Result | null>(
     () => (topic && age && gender ? computeResult(topic, age, gender, value) : null),
     [topic, age, gender, value],
-  )
-
-  const overallUniqueness = useMemo(
-    () => (historyResults.length > 0 ? computeOverallUniqueness(historyResults) : null),
-    [historyResults],
   )
 
   function pick(t: Topic) {
@@ -42,24 +33,11 @@ export default function App() {
     setStage('input')
   }
 
-  function handleResultComplete(newResult: Result) {
-    setHistoryResults((prev) => {
-      const filtered = prev.filter((r) => r.topic.id !== newResult.topic.id)
-      return [...filtered, newResult]
-    })
-  }
-
   const accentStyle = topic ? ({ ['--accent' as string]: topic.accent } as React.CSSProperties) : undefined
 
   return (
     <div style={accentStyle} className="app-root">
-      {stage === 'landing' && (
-        <Landing
-          onPick={pick}
-          historyCount={historyResults.length}
-          onViewOverall={() => setStage('overall')}
-        />
-      )}
+      {stage === 'landing' && <Landing onPick={pick} />}
       {stage === 'input' && topic && (
         <InputScreen
           topic={topic}
@@ -77,7 +55,6 @@ export default function App() {
         <Analyzing
           result={result}
           onDone={() => {
-            handleResultComplete(result)
             setStage('chart')
           }}
         />
@@ -85,39 +62,7 @@ export default function App() {
       {stage === 'chart' && result && (
         <ChartScreen
           result={result}
-          historyCount={historyResults.length}
-          onNext={() => setStage('card')}
-          onViewOverall={() => setStage('overall')}
-        />
-      )}
-      {stage === 'card' && result && (
-        <CardScreen
-          result={result}
-          onNext={() => setStage('spread')}
-          onViewOverall={() => setStage('overall')}
-        />
-      )}
-      {stage === 'overall' && overallUniqueness && (
-        <div className="screen">
-          <button className="link-back" onClick={() => setStage('landing')}>
-            ← 메인으로 돌아가기
-          </button>
-          <OverallResultCard
-            overall={overallUniqueness}
-            onReset={() => {
-              setHistoryResults([])
-              setStage('landing')
-            }}
-          />
-        </div>
-      )}
-      {stage === 'spread' && (
-        <Spread
-          onRestart={() => {
-            setStage('landing')
-          }}
-          onViewOverall={() => setStage('overall')}
-          hasHistory={historyResults.length > 0}
+          onRestart={() => setStage('landing')}
         />
       )}
     </div>
@@ -134,15 +79,7 @@ function HeaderBar() {
   )
 }
 
-function Landing({
-  onPick,
-  historyCount,
-  onViewOverall,
-}: {
-  onPick: (t: Topic) => void
-  historyCount: number
-  onViewOverall: () => void
-}) {
+function Landing({ onPick }: { onPick: (t: Topic) => void }) {
   const [heroIdx, setHeroIdx] = useState(0)
 
   // 조회수 순 TOP 3 주제 필터링
@@ -162,14 +99,6 @@ function Landing({
   return (
     <div className="screen pm-landing-screen">
       <HeaderBar />
-
-      {historyCount > 0 && (
-        <div style={{ padding: '12px 16px 0 16px' }}>
-          <button className="btn-overall" onClick={onViewOverall}>
-            🦄 내 평범 이탈 지수 종합 진단 ({historyCount}개 완료) →
-          </button>
-        </div>
-      )}
 
       {/* 1. 상단 핑크 팝 메인 배너 (조회수 Top 3 순환 배너) */}
       <section className="pm-hero-section">
@@ -379,19 +308,61 @@ function Analyzing({ result, onDone }: { result: Result; onDone: () => void }) {
 
 function ChartScreen({
   result,
-  historyCount,
-  onNext,
-  onViewOverall,
+  onRestart,
 }: {
   result: Result
-  historyCount: number
-  onNext: () => void
-  onViewOverall: () => void
+  onRestart: () => void
 }) {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  async function render(): Promise<Blob | null> {
+    if (!cardRef.current) return null
+    const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, cacheBust: true })
+    const res = await fetch(dataUrl)
+    return res.blob()
+  }
+
+  async function onShare() {
+    setBusy(true)
+    setMsg('')
+    try {
+      const blob = await render()
+      if (!blob) return
+      const file = new File([blob], 'peunggyun-ingane.png', { type: 'image/png' })
+      const navAny = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
+      if (navAny.canShare && navAny.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], text: '나 이거 해봤는데 진짜 팩폭 당함😱 너는 상위 몇 % 나와?' })
+      } else {
+        downloadBlob(blob)
+        setMsg('이미지를 저장했어요. 스토리·피드에 자랑해보세요!')
+      }
+    } catch {
+      setMsg('공유가 취소됐어요.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onSave() {
+    setBusy(true)
+    setMsg('')
+    try {
+      const blob = await render()
+      if (blob) {
+        downloadBlob(blob)
+        setMsg('이미지를 저장했어요.')
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="screen">
       <div className="brand">
-        {result.topic.emoji} {result.topic.navTitle}
+        {result.topic.emoji} {result.topic.navTitle} 팩폭 결과
       </div>
       <h2 className="result-title" style={{ marginTop: 12 }}>
         {resultTitle(result)}
@@ -427,17 +398,29 @@ function ChartScreen({
       <div className="verdict">{verdict(result)}</div>
       <div className="intuitive">{intuitiveLine(result)}</div>
 
-      {historyCount > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <button className="btn-overall" onClick={onViewOverall}>
-            🦄 내 평범 이탈 지수 종합 카드 보기 ({historyCount}개 완료) →
-          </button>
+      {/* 내 결과 공유 카드 미리보기 및 바로 공유 버튼 */}
+      <div style={{ marginTop: 28, marginBottom: 12 }}>
+        <div className="brand" style={{ marginBottom: 10, textAlign: 'center' }}>
+          📸 팩폭 공유 카드
         </div>
-      )}
+        <div className="card-wrap">
+          <ShareCard result={result} innerRef={cardRef} />
+        </div>
+      </div>
 
-      <div className="spacer" />
-      <button className="btn" onClick={onNext}>
-        🔥 팩폭 공유 카드 만들기
+      <div className="stack" style={{ marginTop: 16 }}>
+        <button className="btn" disabled={busy} onClick={onShare}>
+          {busy ? '카드 생성 중…' : '🚀 친구 단톡방에 팩폭 결과 공유하기'}
+        </button>
+        <button className="btn ghost" disabled={busy} onClick={onSave}>
+          💾 카드 이미지 저장하기
+        </button>
+      </div>
+      {msg && <p className="mini-hint">{msg}</p>}
+
+      <div className="spacer" style={{ minHeight: 20 }} />
+      <button className="btn ghost" onClick={onRestart} style={{ marginBottom: 12 }}>
+        🔄 다른 테스트도 해보기
       </button>
     </div>
   )
@@ -468,139 +451,11 @@ function ShareCard({
   )
 }
 
-function CardScreen({
-  result,
-  onNext,
-  onViewOverall,
-}: {
-  result: Result
-  onNext: () => void
-  onViewOverall: () => void
-}) {
-  const cardRef = useRef<HTMLDivElement>(null)
-  const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState('')
-
-  async function render(): Promise<Blob | null> {
-    if (!cardRef.current) return null
-    const dataUrl = await toPng(cardRef.current, { pixelRatio: 3, cacheBust: true })
-    const res = await fetch(dataUrl)
-    return res.blob()
-  }
-
-  async function onShare() {
-    setBusy(true)
-    setMsg('')
-    try {
-      const blob = await render()
-      if (!blob) return
-      const file = new File([blob], 'na-eodijjeum.png', { type: 'image/png' })
-      const navAny = navigator as Navigator & { canShare?: (d: ShareData) => boolean }
-      if (navAny.canShare && navAny.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], text: '나 이거 해봤는데 진짜 팩폭 당함😱 너는 상위 몇 % 나와?' })
-      } else {
-        downloadBlob(blob)
-        setMsg('이미지를 저장했어요. 스토리·피드에 자랑해보세요!')
-      }
-    } catch {
-      setMsg('공유가 취소됐어요.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function onSave() {
-    setBusy(true)
-    setMsg('')
-    try {
-      const blob = await render()
-      if (blob) {
-        downloadBlob(blob)
-        setMsg('이미지를 저장했어요.')
-      }
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="screen">
-      <div className="brand">공유 카드</div>
-      <div className="card-wrap">
-        <ShareCard result={result} innerRef={cardRef} />
-      </div>
-      <div className="stack">
-        <button className="btn" disabled={busy} onClick={onShare}>
-          {busy ? '만드는 중…' : '🔥 친구한테 결과 보내서 팩폭하기'}
-        </button>
-        <button className="btn ghost" disabled={busy} onClick={onSave}>
-          이미지 저장
-        </button>
-        <button className="btn-overall" onClick={onViewOverall}>
-          🦄 내 평범 이탈 지수 종합 카드 보기 →
-        </button>
-      </div>
-      {msg && <p className="mini-hint">{msg}</p>}
-      <div className="spacer" />
-      <button className="btn ghost" onClick={onNext}>
-        다음
-      </button>
-    </div>
-  )
-}
-
-function Spread({
-  onRestart,
-  onViewOverall,
-  hasHistory,
-}: {
-  onRestart: () => void
-  onViewOverall: () => void
-  hasHistory: boolean
-}) {
-  return (
-    <div className="screen">
-      <div className="brand">더 해보기</div>
-      <div className="spacer" />
-      <h1 style={{ fontSize: 22 }}>{'친구는 상위 몇 %일까? 😈\n링크 공유해서 팩폭 대결 가자!'}</h1>
-      <p className="lead">이 링크 공유하면 친구도 10초 만에 자기 리얼 위치가 털려요 💥</p>
-      <div className="stack" style={{ marginTop: 24 }}>
-        <button
-          className="btn"
-          onClick={async () => {
-            try {
-              await navigator.share({
-                title: '평균인간',
-                text: '너는 상위 몇 %야? 나 이거 해봤는데 진짜 팩폭 멘붕 옴 😱',
-                url: location.href,
-              })
-            } catch {
-              await navigator.clipboard?.writeText(location.href)
-            }
-          }}
-        >
-          🔥 친구에게 팩폭 링크 보내기
-        </button>
-        {hasHistory && (
-          <button className="btn-overall" onClick={onViewOverall}>
-            🦄 내 평범 이탈 지수 종합 카드 보기 →
-          </button>
-        )}
-        <button className="btn ghost" onClick={onRestart}>
-          다른 주제도 팩폭 측정하기
-        </button>
-      </div>
-      <div className="spacer" />
-      <p className="mini-hint">주제를 여러 개 하면 나만의 평균 프로필이 완성돼요</p>
-    </div>
-  )
-}
-
 function downloadBlob(blob: Blob) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'na-eodijjeum.png'
+  a.download = 'peunggyun-ingane.png'
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
