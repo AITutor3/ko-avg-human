@@ -136,3 +136,56 @@ export function fmtAsset(manwon: number): string {
   return `${eok}억 ${remainder.toLocaleString()}만원`
 }
 
+export function fmtSalary(manwon: number): string {
+  return fmtAsset(manwon)
+}
+
+export interface OverallUniqueness {
+  deviationIndex: number
+  characterTitle: string
+  subDescription: string
+  tags: string[]
+}
+
+export function computeOverallUniqueness(results: Result[]): OverallUniqueness {
+  if (!results || results.length === 0) {
+    return {
+      deviationIndex: 50,
+      characterTitle: '대한민국 표준 황금 밸런서 ⚖️',
+      subDescription: '남들과 적당히 맞춰 살며 편안함을 즐기는 유형',
+      tags: ['평균 밸런서'],
+    }
+  }
+
+  const diffs = results.map((r) => Math.abs(r.percentile - 50))
+  const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length
+  const deviationIndex = Math.min(99, Math.max(1, Math.round(avgDiff * 2)))
+
+  const tags = results.map((r) => `${r.topic.navTitle} 상위 ${Math.round(r.topPercent)}%`)
+
+  let characterTitle = '대한민국 82% 평균 이탈자 🦄'
+  let subDescription = '남들과 다른 나만의 독보적 인생을 살고 있는 인류!'
+
+  if (deviationIndex >= 80) {
+    characterTitle = '대한민국 1% 독보적 마이웨이 👑'
+    subDescription = '평균 따위는 가뿐히 뛰어넘는 압도적 독창성의 소유자!'
+  } else if (deviationIndex >= 60) {
+    characterTitle = '대한민국 60% 개성파 이탈자 ⚡'
+    subDescription = '자신만의 확실한 취향과 위치를 구축한 유형!'
+  } else if (deviationIndex >= 40) {
+    characterTitle = '대한민국 40% 무난한 조화인 🌿'
+    subDescription = '남들과 적당히 조화를 이루며 무난하게 사는 유형!'
+  } else {
+    characterTitle = '대한민국 순도 99% 황금 밸런서 ⚖️'
+    subDescription = '통계학적으로 가장 완벽한 표준 한국인에 근접!'
+  }
+
+  return {
+    deviationIndex,
+    characterTitle,
+    subDescription,
+    tags,
+  }
+}
+
+

@@ -13,8 +13,10 @@ import { headline, intuitiveLine, resultTitle, subline, verdict } from './copy'
 import DistributionChart from './DistributionChart'
 import TypeResultCard from './TypeResultCard'
 
-type Stage = 'landing' | 'input' | 'analyzing' | 'chart' | 'card' | 'spread'
+import { computeOverallUniqueness } from './stats'
+import { OverallResultCard } from './OverallResultCard'
 
+type Stage = 'landing' | 'input' | 'analyzing' | 'chart' | 'card' | 'spread' | 'overall'
 
 export default function App() {
   const [stage, setStage] = useState<Stage>('landing')
@@ -22,10 +24,16 @@ export default function App() {
   const [age, setAge] = useState<AgeBucket | null>(null)
   const [gender, setGender] = useState<Gender | null>(null)
   const [value, setValue] = useState(4)
+  const [historyResults, setHistoryResults] = useState<Result[]>([])
 
   const result = useMemo<Result | null>(
     () => (topic && age && gender ? computeResult(topic, age, gender, value) : null),
     [topic, age, gender, value],
+  )
+
+  const overallUniqueness = useMemo(
+    () => (historyResults.length > 0 ? computeOverallUniqueness(historyResults) : null),
+    [historyResults],
   )
 
   function pick(t: Topic) {
@@ -34,11 +42,24 @@ export default function App() {
     setStage('input')
   }
 
+  function handleResultComplete(newResult: Result) {
+    setHistoryResults((prev) => {
+      const filtered = prev.filter((r) => r.topic.id !== newResult.topic.id)
+      return [...filtered, newResult]
+    })
+  }
+
   const accentStyle = topic ? ({ ['--accent' as string]: topic.accent } as React.CSSProperties) : undefined
 
   return (
     <div style={accentStyle} className="app-root">
-      {stage === 'landing' && <Landing onPick={pick} />}
+      {stage === 'landing' && (
+        <Landing
+          onPick={pick}
+          historyCount={historyResults.length}
+          onViewOverall={() => setStage('overall')}
+        />
+      )}
       {stage === 'input' && topic && (
         <InputScreen
           topic={topic}
@@ -53,21 +74,50 @@ export default function App() {
         />
       )}
       {stage === 'analyzing' && result && (
-        <Analyzing result={result} onDone={() => setStage('chart')} />
+        <Analyzing
+          result={result}
+          onDone={() => {
+            handleResultComplete(result)
+            setStage('chart')
+          }}
+        />
       )}
       {stage === 'chart' && result && (
-        <ChartScreen result={result} onNext={() => setStage('card')} />
+        <ChartScreen
+          result={result}
+          historyCount={historyResults.length}
+          onNext={() => setStage('card')}
+          onViewOverall={() => setStage('overall')}
+        />
       )}
       {stage === 'card' && result && (
-        <CardScreen result={result} onNext={() => setStage('spread')} />
+        <CardScreen
+          result={result}
+          onNext={() => setStage('spread')}
+          onViewOverall={() => setStage('overall')}
+        />
+      )}
+      {stage === 'overall' && overallUniqueness && (
+        <div className="screen">
+          <button className="link-back" onClick={() => setStage('landing')}>
+            ← 메인으로 돌아가기
+          </button>
+          <OverallResultCard
+            overall={overallUniqueness}
+            onReset={() => {
+              setHistoryResults([])
+              setStage('landing')
+            }}
+          />
+        </div>
       )}
       {stage === 'spread' && (
         <Spread
           onRestart={() => {
-            setAge(null)
-            setGender(null)
             setStage('landing')
           }}
+          onViewOverall={() => setStage('overall')}
+          hasHistory={historyResults.length > 0}
         />
       )}
     </div>
@@ -111,7 +161,15 @@ function HeaderBar() {
   )
 }
 
-function Landing({ onPick }: { onPick: (t: Topic) => void }) {
+function Landing({
+  onPick,
+  historyCount,
+  onViewOverall,
+}: {
+  onPick: (t: Topic) => void
+  historyCount: number
+  onViewOverall: () => void
+}) {
   const [heroIdx, setHeroIdx] = useState(0)
 
   useEffect(() => {
@@ -126,6 +184,14 @@ function Landing({ onPick }: { onPick: (t: Topic) => void }) {
   return (
     <div className="screen pm-landing-screen">
       <HeaderBar />
+
+      {historyCount > 0 && (
+        <div style={{ padding: '12px 16px 0 16px' }}>
+          <button className="btn-overall" onClick={onViewOverall}>
+            🦄 내 평범 이탈 지수 종합 진단 ({historyCount}개 완료) →
+          </button>
+        </div>
+      )}
 
       {/* 1. 상단 핑크 팝 메인 배너 (Hero Carousel Banner) */}
       <section className="pm-hero-section">
@@ -335,7 +401,17 @@ function Analyzing({ result, onDone }: { result: Result; onDone: () => void }) {
   )
 }
 
-function ChartScreen({ result, onNext }: { result: Result; onNext: () => void }) {
+function ChartScreen({
+  result,
+  historyCount,
+  onNext,
+  onViewOverall,
+}: {
+  result: Result
+  historyCount: number
+  onNext: () => void
+  onViewOverall: () => void
+}) {
   return (
     <div className="screen">
       <div className="brand">
@@ -375,6 +451,14 @@ function ChartScreen({ result, onNext }: { result: Result; onNext: () => void })
       <div className="verdict">{verdict(result)}</div>
       <div className="intuitive">{intuitiveLine(result)}</div>
 
+      {historyCount > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <button className="btn-overall" onClick={onViewOverall}>
+            🦄 내 평범 이탈 지수 종합 카드 보기 ({historyCount}개 완료) →
+          </button>
+        </div>
+      )}
+
       <div className="spacer" />
       <button className="btn" onClick={onNext}>
         🔥 팩폭 공유 카드 만들기
@@ -408,7 +492,15 @@ function ShareCard({
   )
 }
 
-function CardScreen({ result, onNext }: { result: Result; onNext: () => void }) {
+function CardScreen({
+  result,
+  onNext,
+  onViewOverall,
+}: {
+  result: Result
+  onNext: () => void
+  onViewOverall: () => void
+}) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -468,6 +560,9 @@ function CardScreen({ result, onNext }: { result: Result; onNext: () => void }) 
         <button className="btn ghost" disabled={busy} onClick={onSave}>
           이미지 저장
         </button>
+        <button className="btn-overall" onClick={onViewOverall}>
+          🦄 내 평범 이탈 지수 종합 카드 보기 →
+        </button>
       </div>
       {msg && <p className="mini-hint">{msg}</p>}
       <div className="spacer" />
@@ -478,7 +573,15 @@ function CardScreen({ result, onNext }: { result: Result; onNext: () => void }) 
   )
 }
 
-function Spread({ onRestart }: { onRestart: () => void }) {
+function Spread({
+  onRestart,
+  onViewOverall,
+  hasHistory,
+}: {
+  onRestart: () => void
+  onViewOverall: () => void
+  hasHistory: boolean
+}) {
   return (
     <div className="screen">
       <div className="brand">더 해보기</div>
@@ -502,6 +605,11 @@ function Spread({ onRestart }: { onRestart: () => void }) {
         >
           🔥 친구에게 팩폭 링크 보내기
         </button>
+        {hasHistory && (
+          <button className="btn-overall" onClick={onViewOverall}>
+            🦄 내 평범 이탈 지수 종합 카드 보기 →
+          </button>
+        )}
         <button className="btn ghost" onClick={onRestart}>
           다른 주제도 팩폭 측정하기
         </button>
@@ -520,3 +628,4 @@ function downloadBlob(blob: Blob) {
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+
