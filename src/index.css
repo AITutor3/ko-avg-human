@@ -154,3 +154,70 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 34px; }
 .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
 .mini-hint { text-align: center; color: var(--muted); font-size: 12px; margin-top: 14px; }
 .stack { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+
+.app-root { flex: 1; display: flex; flex-direction: column; }
+
+.link-back {
+  background: none; border: none; color: var(--muted);
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  padding: 0; cursor: pointer; align-self: flex-start;
+}
+
+/* ── 메인 주제 슬라이더 ── */
+.landing { padding-left: 0; padding-right: 0; }
+.landing .brand, .landing .lead { padding: 0 22px; }
+
+.slider {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-top: 18px;
+}
+.slider::-webkit-scrollbar { display: none; }
+
+.slide {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  padding: 4px 22px 8px;
+  display: flex;
+}
+.slide-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 24px 20px 20px;
+}
+.slide-emoji { font-size: 40px; }
+.slide-kicker {
+  margin-top: 14px; font-size: 12px; font-weight: 800;
+  letter-spacing: 0.08em; color: var(--accent);
+}
+.slide-q {
+  margin-top: 8px; font-size: 24px; font-weight: 800;
+  line-height: 1.34; letter-spacing: -0.02em; white-space: pre-line;
+}
+.slide-teaser { margin-top: 10px; color: var(--muted); font-size: 14px; }
+.slide-card .btn { background: var(--accent); }
+
+.dots {
+  display: flex; justify-content: center; gap: 8px;
+  padding: 16px 0 4px;
+}
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  border: none; padding: 0; background: var(--line); cursor: pointer;
+  transition: width 0.2s ease, background 0.2s ease;
+}
+.dot.on { width: 22px; border-radius: 999px; background: var(--fg); }
+
+.label-pill { background: linear-gradient(90deg, var(--accent), #ff8a5f); }
+.card .c-label { color: var(--accent); }
