@@ -69,11 +69,23 @@ export default function App() {
   )
 }
 
-function HeaderBar() {
+function HeaderBar({ onShareUrl }: { onShareUrl?: () => void }) {
   return (
-    <header className="pm-header">
-      <div className="pm-logo">
+    <header className="pm-header-clean">
+      <div className="pm-logo-clean">
         <span className="pm-logo-text">평균인간</span>
+        <span className="pm-logo-dot">•</span>
+      </div>
+      <div className="pm-header-actions">
+        <button className="pm-icon-btn" aria-label="공유" onClick={onShareUrl}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+        </button>
       </div>
     </header>
   )
@@ -81,11 +93,19 @@ function HeaderBar() {
 
 function Landing({ onPick }: { onPick: (t: Topic) => void }) {
   const [heroIdx, setHeroIdx] = useState(0)
+  const [sortTab, setSortTab] = useState<'popular' | 'latest'>('popular')
+  const [toastMsg, setToastMsg] = useState('')
 
-  // 조회수 순 TOP 3 주제 필터링
   const top3Topics = useMemo(() => {
     return [...TOPICS].sort((a, b) => b.viewsCount - a.viewsCount).slice(0, 3)
   }, [])
+
+  const sortedTopics = useMemo(() => {
+    if (sortTab === 'popular') {
+      return [...TOPICS].sort((a, b) => b.viewsCount - a.viewsCount)
+    }
+    return [...TOPICS]
+  }, [sortTab])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -96,100 +116,145 @@ function Landing({ onPick }: { onPick: (t: Topic) => void }) {
 
   const currentTopic = top3Topics[heroIdx]
 
+  async function handleShareUrl() {
+    const shareUrl = window.location.href
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: '평균인간 - 대한민국 팩폭 테스트',
+          url: shareUrl,
+        })
+      } catch {
+        // 공유 취소 시 무시
+      }
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareUrl)
+      showToast('링크가 복사되었습니다!')
+    } else {
+      showToast('링크가 복사되었습니다!')
+    }
+  }
+
+  function showToast(msg: string) {
+    setToastMsg(msg)
+    setTimeout(() => setToastMsg(''), 2200)
+  }
+
+  function prevHero() {
+    setHeroIdx((prev) => (prev - 1 + top3Topics.length) % top3Topics.length)
+  }
+
+  function nextHero() {
+    setHeroIdx((prev) => (prev + 1) % top3Topics.length)
+  }
+
   return (
-    <div className="screen pm-landing-screen">
-      <HeaderBar />
+    <div className="screen pm-landing-screen-clean">
+      <HeaderBar onShareUrl={handleShareUrl} />
 
-      {/* 1. 상단 핑크 팝 메인 배너 (조회수 Top 3 순환 배너) */}
-      <section className="pm-hero-section">
-        <div className="pm-hero-card">
-          <div className="pm-card-window">
-            <div className="pm-window-header">
-              <span className="window-btn" />
-              <span className="window-btn" />
-            </div>
-
-            <div className="pm-card-content">
-              <div className="pm-card-left">
-                <div className="pm-card-badge">🔥 실시간 인기 TOP {heroIdx + 1}</div>
-                <h1 className="pm-card-title">{currentTopic.question}</h1>
-                <p className="pm-card-sub">{currentTopic.teaser}</p>
-
-                <button className="pm-play-btn" onClick={() => onPick(currentTopic)}>
-                  <span>플레이 하러가기 (▷ {currentTopic.viewsCount}만)</span>
-                  <span>→</span>
-                </button>
+      {/* 1. 상단 소프트 핑크 메인 히어로 카드 */}
+      <section className="pm-hero-section-clean">
+        <div className="pm-hero-card-clean">
+          <div className="pm-hero-card-top">
+            <span className="pm-pill-badge-red">🔥 실시간 인기 TOP {heroIdx + 1}</span>
+            
+            <div className="pm-hero-nav-controls">
+              <button className="hero-arrow-btn" onClick={prevHero} aria-label="이전 카드">‹</button>
+              <div className="pm-hero-heart-badge">
+                <span className="heart-emoji">💖</span>
+                <span className="page-num">{heroIdx + 1} / {top3Topics.length}</span>
               </div>
-
-              <div className="pm-card-right">
-                <div className="pm-character-box">
-                  <div className="pm-heart-icon">💖</div>
-                  <div className="pm-bear-avatar">{currentTopic.emoji}</div>
-                </div>
-
-                <div className="pm-stats-box">
-                  <div className="pm-stat-row">
-                    <span>조회수</span>
-                    <span>▷ {currentTopic.viewsCount}만회</span>
-                  </div>
-                  <div className="pm-stat-row">
-                    <span>공감력 ★★★★★</span>
-                  </div>
-                </div>
-              </div>
+              <button className="hero-arrow-btn" onClick={nextHero} aria-label="다음 카드">›</button>
             </div>
+          </div>
 
-            <div className="pm-page-badge">
-              {heroIdx + 1} / {top3Topics.length}
-            </div>
+          <h1 className="pm-hero-title-clean">
+            {currentTopic.question.split('\n')[0]} <br />
+            <span className="highlight-text">{currentTopic.question.split('\n')[1] ?? ''}</span>
+          </h1>
+
+          <p className="pm-hero-sub-clean">{currentTopic.teaser}</p>
+
+          <button className="pm-hero-play-btn" onClick={() => onPick(currentTopic)}>
+            <span>플레이 하러가기 (▷ {currentTopic.viewsCount}만)</span>
+            <span className="arrow">→</span>
+          </button>
+
+          <div className="pm-hero-metrics-clean">
+            <span className="metric-item">조회 <b className="num">{currentTopic.viewsCount}만</b></span>
+            <span className="metric-divider">|</span>
+            <span className="metric-item">공감 <span className="stars">★★★★★</span></span>
           </div>
         </div>
       </section>
 
-      {/* 2. 하단 전체 심테 가로 스크롤 카드 행 */}
-      <section className="pm-section">
-        <div className="pm-section-header">
+      {/* 2. 인기 심테 랭킹 가로 스크롤 카드 */}
+      <section className="pm-section-clean">
+        <div className="pm-section-header-clean">
           <h2>🔥 인기 심테 랭킹</h2>
+          <span className="side-hint">옆으로 넘겨보기</span>
         </div>
 
-        <div className="pm-horizontal-scroll">
-          {TOPICS.map((t) => (
-            <div className="pm-test-card" key={t.id} onClick={() => onPick(t)}>
-              <div className="pm-thumb-box" style={{ ['--accent-color' as string]: t.accent } as React.CSSProperties}>
-                <div className="pm-thumb-emoji">{t.emoji}</div>
-                <div className="pm-thumb-title">{t.navTitle}</div>
-                <div className="pm-thumb-mini-stats">
-                  <span>▷ {t.viewsCount}만회</span>
-                </div>
+        <div className="pm-horizontal-scroll-clean">
+          {TOPICS.map((t, idx) => (
+            <div className="pm-rank-card" key={t.id} onClick={() => onPick(t)}>
+              <div className={`pm-rank-thumb-box theme-${t.id}`}>
+                <div className="pm-rank-emoji">{t.emoji}</div>
+                <div className="pm-rank-nav-title">{t.navTitle}</div>
               </div>
-              <div className="pm-test-title">{t.question.split('\n')[0]}</div>
-              <div className="pm-test-views">
-                <span>▷</span> {t.viewsCount}만 참여
+              <div className="pm-rank-card-title">{t.question.split('\n')[0]}</div>
+              <div className="pm-rank-card-footer">
+                <span className="views">▷ {t.viewsCount}만</span>
+                <span className="rank-tag">{idx + 1}위</span>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 3. 인기 팩폭 심테 2열 카드 섹션 */}
-      <section className="pm-section" style={{ marginTop: 24, marginBottom: 20 }}>
-        <div className="pm-section-header">
+      {/* 3. 전체 팩폭 테스트 목록 (인기순 / 최신순 탭) */}
+      <section className="pm-section-clean" style={{ marginTop: 24, marginBottom: 24 }}>
+        <div className="pm-section-header-clean">
           <h2>🎯 전체 팩폭 테스트 목록</h2>
+          <div className="pm-tab-pills">
+            <button className={`tab-btn${sortTab === 'popular' ? ' active' : ''}`} onClick={() => setSortTab('popular')}>인기순</button>
+            <button className={`tab-btn${sortTab === 'latest' ? ' active' : ''}`} onClick={() => setSortTab('latest')}>최신순</button>
+          </div>
         </div>
-        <div className="pm-grid-2col">
-          {TOPICS.map((t) => (
-            <div className="pm-grid-item" key={t.id} onClick={() => onPick(t)}>
-              <div className="pm-grid-thumb" style={{ background: t.accent }}>
+
+        <div className="pm-grid-2col-clean">
+          {sortedTopics.map((t) => (
+            <div className="pm-grid-card-clean" key={t.id} onClick={() => onPick(t)}>
+              <div className={`pm-grid-icon-box theme-${t.id}`}>
                 <span>{t.emoji}</span>
               </div>
-              <div className="pm-grid-info">
-                <div className="pm-grid-title">{t.navTitle}</div>
-                <div className="pm-grid-desc">▷ {t.viewsCount}만회 참여</div>
+              <div className="pm-grid-card-info">
+                <div className="pm-grid-card-title">{t.navTitle}</div>
+                <div className="pm-grid-card-views">▷ {t.viewsCount}만 참여</div>
               </div>
             </div>
           ))}
         </div>
       </section>
+
+      {/* 토스트 알림 / 팝업 토스트 */}
+      {toastMsg && (
+        <div className="toast-popup-msg">
+          {toastMsg}
+        </div>
+      )}
+
+      {/* 4. 최하단 고정 네비게이션 바 (인기랭킹 제거, 내 보관함 누를 시 팝업) */}
+      <div className="pm-bottom-nav">
+        <button className="nav-item active" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          <span>홈</span>
+        </button>
+        <button className="nav-item" onClick={() => showToast('준비중입니다.')}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+          <span>내 보관함</span>
+        </button>
+      </div>
     </div>
   )
 }
@@ -215,23 +280,43 @@ function InputScreen({
   onBack: () => void
   onNext: () => void
 }) {
-  return (
-    <div className="screen">
-      <button className="link-back" onClick={onBack}>
-        ← 다른 주제 고르기
-      </button>
-      <div className="brand" style={{ marginTop: 6 }}>
-        {topic.emoji} {topic.navTitle}
-      </div>
-      <h1 style={{ fontSize: 21, marginTop: 14 }}>{topic.question}</h1>
+  // 월 예상 실수령액 계산 (연봉 주제 특화)
+  const monthlyEstimate = topic.id === 'income_salary' ? Math.round((value * 0.8) / 12) : null
 
-      <div className="field">
-        <label>나이대 선택</label>
-        <div className="chips">
+  return (
+    <div className="screen input-screen-clean">
+      {/* 1. 상단 뒤로가기 & 주제 뱃지 */}
+      <div className="input-top-bar">
+        <button className="link-back-clean" onClick={onBack}>
+          ‹ 다른 주제 고르기
+        </button>
+        <span className="topic-pill-badge" style={{ background: `${topic.accent}20`, color: topic.accent }}>
+          {topic.emoji} {topic.navTitle}
+        </span>
+      </div>
+
+      {/* 2. 메인 질문 타이틀 & 서브 안내 */}
+      <div className="input-header-group">
+        <h1 className="input-main-title">
+          {topic.question.split('\n')[0]} <br />
+          <span className="title-highlight" style={{ color: topic.accent }}>
+            {topic.question.split('\n')[1] ?? ''}
+          </span>
+        </h1>
+        <p className="input-sub-desc">통계청 및 고용노동부 최신 임금직무 정보 기반</p>
+      </div>
+
+      {/* 3. 나이대 선택 */}
+      <div className="input-field-group">
+        <div className="field-label-row">
+          <span className="field-label">나이대 선택</span>
+          <span className="field-hint">만 나이 기준</span>
+        </div>
+        <div className="age-chips-row">
           {AGE_OPTIONS.map((o) => (
             <button
               key={o.value}
-              className={`chip${age === o.value ? ' on' : ''}`}
+              className={`age-chip-btn${age === o.value ? ' active' : ''}`}
               onClick={() => setAge(o.value)}
             >
               {o.label}
@@ -240,13 +325,14 @@ function InputScreen({
         </div>
       </div>
 
-      <div className="field">
-        <label>성별 선택</label>
-        <div className="chips">
+      {/* 4. 성별 선택 */}
+      <div className="input-field-group">
+        <span className="field-label">성별 선택</span>
+        <div className="gender-chips-row">
           {GENDER_OPTIONS.map((o) => (
             <button
               key={o.value}
-              className={`chip${gender === o.value ? ' on' : ''}`}
+              className={`gender-chip-btn${gender === o.value ? ' active' : ''}`}
               onClick={() => setGender(o.value)}
             >
               {o.label}
@@ -255,26 +341,53 @@ function InputScreen({
         </div>
       </div>
 
-      <div className="field">
-        <label>{topic.inputLabel}</label>
-        <div className="slider-row">
-          <span className="slider-val">{topic.fmt(value)}</span>
+      {/* 5. 금액/수치 입력 카드 */}
+      <div className="input-card-box">
+        <div className="input-card-header">
+          <span className="input-card-title">{topic.inputLabel}</span>
+          <span className="live-badge">실시간 반영</span>
         </div>
-        <input
-          type="range"
-          min={topic.min}
-          max={topic.max}
-          step={topic.step}
-          value={value}
-          onChange={(e) => setValue(Number(e.target.value))}
-        />
-        <p className="intuitive">{topic.inputHint}</p>
+
+        <div className="input-card-body">
+          <div className="value-display-row">
+            <div className="main-val-text">
+              <span className="num">{topic.fmt(value)}</span>
+            </div>
+            {monthlyEstimate !== null && (
+              <div className="monthly-estimate-box">
+                <span className="lbl">월 예상 실수령액</span>
+                <span className="val">약 {monthlyEstimate.toLocaleString()}만원</span>
+              </div>
+            )}
+          </div>
+
+          <div className="slider-container">
+            <input
+              type="range"
+              min={topic.min}
+              max={topic.max}
+              step={topic.step}
+              value={value}
+              className="custom-range-slider"
+              onChange={(e) => setValue(Number(e.target.value))}
+            />
+          </div>
+
+          <div className="range-ticks-row">
+            <span>{topic.fmt(topic.min)}</span>
+            <span>{topic.fmt(Math.round((topic.min + topic.max) * 0.35))}</span>
+            <span>{topic.fmt(Math.round((topic.min + topic.max) * 0.7))}</span>
+            <span>{topic.fmt(topic.max)}+</span>
+          </div>
+        </div>
       </div>
 
-      <div className="spacer" />
-      <button className="btn" disabled={!age || !gender} onClick={onNext}>
-        🔥 팩폭 결과 확인하기
-      </button>
+      {/* 제출 블루 메인 버튼 */}
+      <div className="input-submit-wrap">
+        <button className="btn-primary-blue" disabled={!age || !gender} onClick={onNext}>
+          🔥 팩폭 결과 확인하기
+        </button>
+      </div>
     </div>
   )
 }
