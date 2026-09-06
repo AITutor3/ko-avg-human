@@ -6,6 +6,7 @@
 const NEON_HOST = 'ep-mute-silence-b3is2z0b-pooler.c-4.ap-southeast-1.aws.neon.tech'
 const NEON_CONNECTION_STRING =
   import.meta.env.VITE_NEON_DATABASE_URL ||
+  import.meta.env.NEON_DATABASE_URL ||
   'postgresql://neondb_owner:npg_purHcz2W8UEn@ep-mute-silence-b3is2z0b-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require'
 
 export interface TestViewStat {
