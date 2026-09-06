@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
 import {
-  AGE_OPTIONS,
-  GENDER_OPTIONS,
+  groupModel,
   computeResult,
   type AgeBucket,
   type Gender,
@@ -13,6 +12,30 @@ import { comprehensiveSummary, headline, verdict } from './copy'
 import DistributionChart from './DistributionChart'
 import TypeResultCard from './TypeResultCard'
 import { event, initGA, pageview } from './gtag'
+import type {
+  IdealMatchInput,
+  PhysicalInput,
+  NetWorthInput,
+  IncomeSalaryInput,
+  SpendingStyleInput,
+  DatingCountInput,
+} from './types/input'
+import { computeIdealMatchStat } from './calculators/idealMatchCalc'
+import { computePhysicalStats } from './calculators/physicalStatsCalc'
+
+import IdealMatchForm from './components/inputs/IdealMatchForm'
+import PhysicalStatsForm from './components/inputs/PhysicalStatsForm'
+import NetWorthForm from './components/inputs/NetWorthForm'
+import IncomeSalaryForm from './components/inputs/IncomeSalaryForm'
+import SpendingStyleForm from './components/inputs/SpendingStyleForm'
+import DatingCountForm from './components/inputs/DatingCountForm'
+
+import {
+  fetchAllTestViews,
+  recordTestView,
+  formatViewCount,
+  FALLBACK_VIEWS,
+} from './lib/neon'
 
 type Stage = 'landing' | 'input' | 'analyzing' | 'chart'
 
@@ -21,7 +44,65 @@ export default function App() {
   const [topic, setTopic] = useState<Topic | null>(null)
   const [age, setAge] = useState<AgeBucket | null>(null)
   const [gender, setGender] = useState<Gender | null>(null)
-  const [value, setValue] = useState(4)
+  const [viewsMap, setViewsMap] = useState<Record<string, number>>(FALLBACK_VIEWS)
+
+  useEffect(() => {
+    // Neon DB에서 실시간 조회수 불러오기
+    fetchAllTestViews().then((data) => {
+      setViewsMap(data)
+    })
+  }, [])
+
+  // 각 주제별 특화 폼 상태
+  const [idealMatchForm, setIdealMatchForm] = useState<IdealMatchInput>({
+    myGender: 'female',
+    myAge: null,
+    targetGender: 'male',
+    targetAgePref: 'same',
+    targetHeightMin: 176,
+    targetIncomeMin: 4500,
+    targetJob: 'general',
+    targetBody: 'standard',
+    targetNonSmoker: true,
+  })
+
+  // 신체적 조건 (키, 몸무게)
+  const [physicalForm, setPhysicalForm] = useState<PhysicalInput>({
+    myGender: 'male',
+    myAge: null,
+    myHeight: 174.5,
+    myWeight: 74.0,
+    region: '계',
+  })
+
+  const [netWorthForm, setNetWorthForm] = useState<NetWorthInput>({
+    myGender: 'female',
+    myAge: null,
+    financialAssets: 3500,
+    realEstate: 6000,
+    debts: 1500,
+    netWorth: 8000,
+  })
+
+  const [incomeSalaryForm, setIncomeSalaryForm] = useState<IncomeSalaryInput>({
+    myGender: 'male',
+    myAge: null,
+    totalSalary: 4500,
+  })
+
+  const [spendingStyleForm, setSpendingStyleForm] = useState<SpendingStyleInput>({
+    myGender: 'female',
+    myAge: null,
+    monthlyIncome: 300,
+    monthlySpending: 150,
+  })
+
+  const [datingCountForm, setDatingCountForm] = useState<DatingCountInput>({
+    myGender: 'female',
+    myAge: null,
+    count: 3,
+    longestDuration: '1y_3y',
+  })
 
   useEffect(() => {
     initGA()
@@ -31,33 +112,155 @@ export default function App() {
     pageview(`/${stage}${topic ? `/${topic.id}` : ''}`)
   }, [stage, topic])
 
-  const result = useMemo<Result | null>(
-    () => (topic && age && gender ? computeResult(topic, age, gender, value) : null),
-    [topic, age, gender, value],
-  )
+  // 결과 연산
+  const result = useMemo<Result | null>(() => {
+    if (!topic || !age || !gender) return null
+
+    // 1. 이상형 희소성 결합 확률 통계
+    if (topic.id === 'ideal_match') {
+      const stat = computeIdealMatchStat({
+        ...idealMatchForm,
+        myAge: age,
+        myGender: gender,
+      })
+      const model = groupModel(topic, age, gender)
+      return {
+        topic,
+        model,
+        value: stat.rarityScore,
+        percentile: stat.percentile,
+        topPercent: stat.topPercent,
+        diff: stat.rarityScore - model.median,
+        ratio: stat.rarityScore / model.median,
+        peopleBelow: Math.round(stat.percentile),
+        extraInfo: {
+          breakdownItems: stat.summaryBreakdown,
+          subtitleSummary: `상위 ${stat.topPercent.toFixed(1)}%의 유니콘급 이상형 조건`,
+        },
+      }
+    }
+
+    // 2. 신체적 조건 (2024 국가건강검진 실측 키 & 몸무게 2개 차트)
+    if (topic.id === 'physical_condition') {
+      const stat = computePhysicalStats(topic, {
+        ...physicalForm,
+        myAge: age,
+        myGender: gender,
+      })
+      const model = groupModel(topic, age, gender)
+      return {
+        topic,
+        model,
+        value: physicalForm.myHeight,
+        percentile: stat.heightPercentile,
+        topPercent: stat.heightTopPercent,
+        diff: stat.heightDiff,
+        ratio: physicalForm.myHeight / stat.meanHeight,
+        peopleBelow: Math.round(stat.heightPercentile),
+        extraInfo: {
+          subtitleSummary: `키 상위 ${Math.round(stat.heightTopPercent)}% · 몸무게 상위 ${Math.round(stat.weightTopPercent)}% (BMI ${stat.bmi})`,
+          physicalStats: {
+            heightResult: stat.heightResult,
+            weightResult: stat.weightResult,
+            meanHeight: stat.meanHeight,
+            meanWeight: stat.meanWeight,
+            heightDiff: stat.heightDiff,
+            weightDiff: stat.weightDiff,
+            bmi: stat.bmi,
+            bmiCategory: stat.bmiCategory,
+            bmiDescription: stat.bmiDescription,
+          },
+        },
+      }
+    }
+
+    // 3. 순자산
+    if (topic.id === 'net_worth') {
+      return computeResult(topic, age, gender, netWorthForm.netWorth)
+    }
+
+    // 4. 연봉
+    if (topic.id === 'income_salary') {
+      return computeResult(topic, age, gender, incomeSalaryForm.totalSalary)
+    }
+
+    // 5. 소비 수준
+    if (topic.id === 'spending_style') {
+      return computeResult(topic, age, gender, spendingStyleForm.monthlySpending)
+    }
+
+    // 6. 연애 횟수
+    if (topic.id === 'dating_count') {
+      return computeResult(topic, age, gender, datingCountForm.count)
+    }
+
+    return computeResult(topic, age, gender, topic.default)
+  }, [
+    topic,
+    age,
+    gender,
+    idealMatchForm,
+    physicalForm,
+    netWorthForm,
+    incomeSalaryForm,
+    spendingStyleForm,
+    datingCountForm,
+  ])
+
+  const refreshViews = () => {
+    fetchAllTestViews().then((data) => {
+      setViewsMap(data)
+    })
+  }
+
+  useEffect(() => {
+    // Neon DB에서 실시간 조회수 불러오기
+    refreshViews()
+  }, [])
 
   function pick(t: Topic) {
     setTopic(t)
-    setValue(t.default)
     setStage('input')
     event({ action: 'select_topic', category: 'interaction', label: t.navTitle })
+
+    // Neon DB 실시간 조회수 증가 및 로컬 상태 즉시 반영
+    recordTestView(t.id, t.navTitle).then((newCount) => {
+      if (newCount !== null) {
+        setViewsMap((prev) => ({ ...prev, [t.id]: newCount }))
+      }
+    })
+  }
+
+  const goLanding = () => {
+    setStage('landing')
+    refreshViews()
   }
 
   const accentStyle = topic ? ({ ['--accent' as string]: topic.accent } as React.CSSProperties) : undefined
 
   return (
     <div style={accentStyle} className="app-root">
-      {stage === 'landing' && <Landing onPick={pick} />}
+      {stage === 'landing' && <Landing onPick={pick} viewsMap={viewsMap} />}
       {stage === 'input' && topic && (
         <InputScreen
           topic={topic}
           age={age}
           gender={gender}
-          value={value}
           setAge={setAge}
           setGender={setGender}
-          setValue={setValue}
-          onBack={() => setStage('landing')}
+          idealMatchForm={idealMatchForm}
+          setIdealMatchForm={setIdealMatchForm}
+          physicalForm={physicalForm}
+          setPhysicalForm={setPhysicalForm}
+          netWorthForm={netWorthForm}
+          setNetWorthForm={setNetWorthForm}
+          incomeSalaryForm={incomeSalaryForm}
+          setIncomeSalaryForm={setIncomeSalaryForm}
+          spendingStyleForm={spendingStyleForm}
+          setSpendingStyleForm={setSpendingStyleForm}
+          datingCountForm={datingCountForm}
+          setDatingCountForm={setDatingCountForm}
+          onBack={goLanding}
           onNext={() => setStage('analyzing')}
         />
       )}
@@ -72,7 +275,7 @@ export default function App() {
       {stage === 'chart' && result && (
         <ChartScreen
           result={result}
-          onRestart={() => setStage('landing')}
+          onRestart={goLanding}
         />
       )}
     </div>
@@ -101,30 +304,43 @@ function HeaderBar({ onShareUrl }: { onShareUrl?: () => void }) {
   )
 }
 
-function Landing({ onPick }: { onPick: (t: Topic) => void }) {
+function Landing({
+  onPick,
+  viewsMap,
+}: {
+  onPick: (t: Topic) => void
+  viewsMap: Record<string, number>
+}) {
   const [heroIdx, setHeroIdx] = useState(0)
   const [sortTab, setSortTab] = useState<'popular' | 'latest'>('popular')
   const [toastMsg, setToastMsg] = useState('')
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+
+  const getViewCount = (topicId: string) => {
+    return viewsMap[topicId] ?? 0
+  }
 
   const top3Topics = useMemo(() => {
-    return [...TOPICS].sort((a, b) => b.viewsCount - a.viewsCount).slice(0, 3)
-  }, [])
+    return [...TOPICS]
+      .sort((a, b) => getViewCount(b.id) - getViewCount(a.id))
+      .slice(0, 3)
+  }, [viewsMap])
 
   const sortedTopics = useMemo(() => {
     if (sortTab === 'popular') {
-      return [...TOPICS].sort((a, b) => b.viewsCount - a.viewsCount)
+      return [...TOPICS].sort((a, b) => getViewCount(b.id) - getViewCount(a.id))
     }
     return [...TOPICS]
-  }, [sortTab])
+  }, [sortTab, viewsMap])
 
+  // 자동 슬라이드 롤링 (4.5초 주기)
   useEffect(() => {
     const timer = setInterval(() => {
       setHeroIdx((prev) => (prev + 1) % top3Topics.length)
     }, 4500)
     return () => clearInterval(timer)
   }, [top3Topics.length])
-
-  const currentTopic = top3Topics[heroIdx]
 
   async function handleShareUrl() {
     const shareUrl = window.location.href
@@ -158,78 +374,129 @@ function Landing({ onPick }: { onPick: (t: Topic) => void }) {
     setHeroIdx((prev) => (prev + 1) % top3Topics.length)
   }
 
+  // 모바일 터치 스와이프 제스처 핸들러
+  function onTouchStart(e: React.TouchEvent) {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  function onTouchEnd() {
+    if (!touchStart || !touchEnd) return
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 40
+    const isRightSwipe = distance < -40
+    if (isLeftSwipe) {
+      nextHero()
+    } else if (isRightSwipe) {
+      prevHero()
+    }
+  }
+
   return (
     <div className="screen pm-landing-screen-clean">
       <HeaderBar onShareUrl={handleShareUrl} />
 
-      {/* 1. 메인 히어로 카드 (슬라이드 전환 시 테마 색상 동적 전환) */}
+      {/* 1. 메인 히어로 좌우 슬라이딩 캐러셀 트랙 */}
       <section className="pm-hero-section-clean">
         <div
-          className="pm-hero-card-clean"
-          style={{
-            background: `linear-gradient(145deg, #ffffff 0%, ${currentTopic.accent}18 100%)`,
-            borderColor: `${currentTopic.accent}40`,
-            boxShadow: `0 8px 24px ${currentTopic.accent}25`,
-            transition: 'all 0.4s ease',
-          }}
+          className="pm-hero-carousel-wrapper"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
         >
-          <div className="pm-hero-card-top">
-            <span
-              className="pm-pill-badge-red"
-              style={{
-                background: currentTopic.accent,
-                color: '#ffffff',
-                fontWeight: 900,
-                boxShadow: `0 3px 10px ${currentTopic.accent}50`,
-                transition: 'all 0.3s ease',
-              }}
-            >
-              🔥 실시간 인기 TOP {heroIdx + 1}
-            </span>
-            
-            <div className="pm-hero-nav-controls">
-              <button
-                className="hero-arrow-btn"
-                onClick={prevHero}
-                aria-label="이전 카드"
-                style={{ color: currentTopic.accent, borderColor: `${currentTopic.accent}40` }}
-              >
-                ‹
-              </button>
-              <div className="pm-hero-heart-badge">
-                <span className="heart-emoji">💖</span>
-                <span className="page-num">{heroIdx + 1} / {top3Topics.length}</span>
+          <div
+            className="pm-hero-carousel-track"
+            style={{
+              transform: `translateX(-${heroIdx * 100}%)`,
+            }}
+          >
+            {top3Topics.map((t, idx) => (
+              <div className="pm-hero-carousel-slide" key={t.id}>
+                <div
+                  className="pm-hero-card-clean"
+                  style={{
+                    background: `linear-gradient(145deg, #ffffff 0%, ${t.accent}18 100%)`,
+                    borderColor: `${t.accent}40`,
+                    boxShadow: `0 8px 24px ${t.accent}25`,
+                  }}
+                >
+                  <div className="pm-hero-card-top">
+                    <span
+                      className="pm-pill-badge-red"
+                      style={{
+                        background: t.accent,
+                        color: '#ffffff',
+                        boxShadow: `0 3px 10px ${t.accent}50`,
+                      }}
+                    >
+                      🔥 실시간 인기 TOP {idx + 1}
+                    </span>
+                    
+                    <div className="pm-hero-nav-controls">
+                      <button
+                        className="hero-arrow-btn"
+                        onClick={prevHero}
+                        aria-label="이전 카드"
+                        style={{ color: t.accent }}
+                      >
+                        ‹
+                      </button>
+                      <div className="pm-hero-heart-badge">
+                        <span className="heart-emoji">💖</span>
+                        <span className="page-num">{idx + 1} / {top3Topics.length}</span>
+                      </div>
+                      <button
+                        className="hero-arrow-btn"
+                        onClick={nextHero}
+                        aria-label="다음 카드"
+                        style={{ color: t.accent }}
+                      >
+                        ›
+                      </button>
+                    </div>
+                  </div>
+
+                  <h1 className="pm-hero-title-clean">
+                    {t.question.split('\n')[0]} <br />
+                    <span className="highlight-text" style={{ color: t.accent }}>
+                      {t.question.split('\n')[1] ?? ''}
+                    </span>
+                  </h1>
+
+                  <p className="pm-hero-sub-clean">{t.teaser}</p>
+
+                  <button className="pm-hero-play-btn" onClick={() => onPick(t)}>
+                    <span>플레이 하러가기</span>
+                    <span className="arrow">→</span>
+                  </button>
+
+                  <div className="pm-hero-metrics-clean">
+                    <span className="metric-item">조회 <b className="num" style={{ color: t.accent }}>{formatViewCount(viewsMap[t.id] ?? 0)}</b></span>
+                    <span className="metric-divider">|</span>
+                    <span className="metric-item">공감 <span className="stars">★★★★★</span></span>
+                  </div>
+                </div>
               </div>
-              <button
-                className="hero-arrow-btn"
-                onClick={nextHero}
-                aria-label="다음 카드"
-                style={{ color: currentTopic.accent, borderColor: `${currentTopic.accent}40` }}
-              >
-                ›
-              </button>
-            </div>
+            ))}
           </div>
+        </div>
 
-          <h1 className="pm-hero-title-clean">
-            {currentTopic.question.split('\n')[0]} <br />
-            <span className="highlight-text" style={{ color: currentTopic.accent, transition: 'color 0.3s ease' }}>
-              {currentTopic.question.split('\n')[1] ?? ''}
-            </span>
-          </h1>
-
-          <p className="pm-hero-sub-clean">{currentTopic.teaser}</p>
-
-          <button className="pm-hero-play-btn" onClick={() => onPick(currentTopic)}>
-            <span>플레이 하러가기</span>
-            <span className="arrow">→</span>
-          </button>
-
-          <div className="pm-hero-metrics-clean">
-            <span className="metric-item">조회 <b className="num" style={{ color: currentTopic.accent }}>{currentTopic.viewsCount}만</b></span>
-            <span className="metric-divider">|</span>
-            <span className="metric-item">공감 <span className="stars">★★★★★</span></span>
-          </div>
+        {/* 캐러셀 하단 도트 인디케이터 */}
+        <div className="pm-hero-dots-indicator">
+          {top3Topics.map((t, idx) => (
+            <div
+              key={t.id}
+              className={`pm-hero-dot ${heroIdx === idx ? 'active' : ''}`}
+              style={{
+                backgroundColor: heroIdx === idx ? t.accent : '#cbd5e1',
+              }}
+              onClick={() => setHeroIdx(idx)}
+            />
+          ))}
         </div>
       </section>
 
@@ -241,7 +508,9 @@ function Landing({ onPick }: { onPick: (t: Topic) => void }) {
         </div>
 
         <div className="pm-horizontal-scroll-clean">
-          {TOPICS.map((t, idx) => (
+          {[...TOPICS]
+            .sort((a, b) => (viewsMap[b.id] ?? 0) - (viewsMap[a.id] ?? 0))
+            .map((t, idx) => (
             <div className="pm-rank-card" key={t.id} onClick={() => onPick(t)}>
               <div className={`pm-rank-thumb-box theme-${t.id}`}>
                 <div className="pm-rank-emoji">{t.emoji}</div>
@@ -249,7 +518,7 @@ function Landing({ onPick }: { onPick: (t: Topic) => void }) {
               </div>
               <div className="pm-rank-card-title">{t.question.split('\n')[0]}</div>
               <div className="pm-rank-card-footer">
-                <span className="views">▷ {t.viewsCount}만</span>
+                <span className="views">▷ {formatViewCount(viewsMap[t.id] ?? 0)}</span>
                 <span className="rank-tag">{idx + 1}위</span>
               </div>
             </div>
@@ -257,7 +526,7 @@ function Landing({ onPick }: { onPick: (t: Topic) => void }) {
         </div>
       </section>
 
-      {/* 3. 전체 팩폭 테스트 목록 (인기순 / 최신순 탭) */}
+      {/* 3. 전체 팩폭 테스트 목록 */}
       <section className="pm-section-clean" style={{ marginTop: 24, marginBottom: 24 }}>
         <div className="pm-section-header-clean">
           <h2>🎯 전체 팩폭 테스트 목록</h2>
@@ -275,21 +544,17 @@ function Landing({ onPick }: { onPick: (t: Topic) => void }) {
               </div>
               <div className="pm-grid-card-info">
                 <div className="pm-grid-card-title">{t.navTitle}</div>
-                <div className="pm-grid-card-views">▷ {t.viewsCount}만 참여</div>
+                <div className="pm-grid-card-views">▷ {formatViewCount(viewsMap[t.id] ?? 0)} 참여</div>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 토스트 알림 / 팝업 토스트 */}
-      {toastMsg && (
-        <div className="toast-popup-msg">
-          {toastMsg}
-        </div>
-      )}
+      {/* 토스트 알림 */}
+      {toastMsg && <div className="toast-popup-msg">{toastMsg}</div>}
 
-      {/* 4. 최하단 고정 네비게이션 바 (인기랭킹 제거, 내 보관함 누를 시 팝업) */}
+      {/* 최하단 네비게이션 바 */}
       <div className="pm-bottom-nav">
         <button className="nav-item active" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -308,26 +573,43 @@ function InputScreen({
   topic,
   age,
   gender,
-  value,
   setAge,
   setGender,
-  setValue,
+  idealMatchForm,
+  setIdealMatchForm,
+  physicalForm,
+  setPhysicalForm,
+  netWorthForm,
+  setNetWorthForm,
+  incomeSalaryForm,
+  setIncomeSalaryForm,
+  spendingStyleForm,
+  setSpendingStyleForm,
+  datingCountForm,
+  setDatingCountForm,
   onBack,
   onNext,
 }: {
   topic: Topic
   age: AgeBucket | null
   gender: Gender | null
-  value: number
   setAge: (a: AgeBucket) => void
   setGender: (g: Gender) => void
-  setValue: (v: number) => void
+  idealMatchForm: IdealMatchInput
+  setIdealMatchForm: (v: IdealMatchInput) => void
+  physicalForm: PhysicalInput
+  setPhysicalForm: (v: PhysicalInput) => void
+  netWorthForm: NetWorthInput
+  setNetWorthForm: (v: NetWorthInput) => void
+  incomeSalaryForm: IncomeSalaryInput
+  setIncomeSalaryForm: (v: IncomeSalaryInput) => void
+  spendingStyleForm: SpendingStyleInput
+  setSpendingStyleForm: (v: SpendingStyleInput) => void
+  datingCountForm: DatingCountInput
+  setDatingCountForm: (v: DatingCountInput) => void
   onBack: () => void
   onNext: () => void
 }) {
-  // 월 예상 실수령액 계산 (연봉 주제 특화)
-  const monthlyEstimate = topic.id === 'income_salary' ? Math.round((value * 0.8) / 12) : null
-
   return (
     <div className="screen input-screen-clean">
       {/* 1. 상단 뒤로가기 & 주제 뱃지 */}
@@ -340,7 +622,7 @@ function InputScreen({
         </span>
       </div>
 
-      {/* 2. 메인 질문 타이틀 & 서브 안내 */}
+      {/* 2. 메인 질문 타이틀 */}
       <div className="input-header-group">
         <h1 className="input-main-title">
           {topic.question.split('\n')[0]} <br />
@@ -348,97 +630,87 @@ function InputScreen({
             {topic.question.split('\n')[1] ?? ''}
           </span>
         </h1>
-        <p className="input-sub-desc">통계청 및 고용노동부 최신 임금직무 정보 기반</p>
+        <p className="input-sub-desc">대한민국 2024 국가건강검진 및 공식 모집단 데이터 기반 실측</p>
       </div>
 
-      {/* 3. 나이대 선택 */}
-      <div className="input-field-group">
-        <div className="field-label-row">
-          <span className="field-label">나이대 선택</span>
-          <span className="field-hint">만 나이 기준</span>
-        </div>
-        <div className="age-chips-row">
-          {AGE_OPTIONS.map((o) => (
-            <button
-              key={o.value}
-              className={`age-chip-btn${age === o.value ? ' active' : ''}`}
-              onClick={() => setAge(o.value)}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* 3. 주제별 특화 폼 렌더링 */}
+      {topic.id === 'ideal_match' && (
+        <IdealMatchForm
+          age={age}
+          gender={gender}
+          formState={idealMatchForm}
+          onChange={setIdealMatchForm}
+          setAge={setAge}
+          setGender={setGender}
+          onNext={onNext}
+        />
+      )}
 
-      {/* 4. 성별 선택 */}
-      <div className="input-field-group">
-        <span className="field-label">성별 선택</span>
-        <div className="gender-chips-row">
-          {GENDER_OPTIONS.map((o) => (
-            <button
-              key={o.value}
-              className={`gender-chip-btn${gender === o.value ? ' active' : ''}`}
-              onClick={() => setGender(o.value)}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      {topic.id === 'physical_condition' && (
+        <PhysicalStatsForm
+          age={age}
+          gender={gender}
+          formState={physicalForm}
+          onChange={setPhysicalForm}
+          setAge={setAge}
+          setGender={setGender}
+          onNext={onNext}
+        />
+      )}
 
-      {/* 5. 금액/수치 입력 카드 */}
-      <div className="input-card-box">
-        <div className="input-card-header">
-          <span className="input-card-title">{topic.inputLabel}</span>
-          <span className="live-badge">실시간 반영</span>
-        </div>
+      {topic.id === 'net_worth' && (
+        <NetWorthForm
+          age={age}
+          gender={gender}
+          formState={netWorthForm}
+          onChange={setNetWorthForm}
+          setAge={setAge}
+          setGender={setGender}
+          onNext={onNext}
+        />
+      )}
 
-        <div className="input-card-body">
-          <div className="value-display-row">
-            <div className="main-val-text">
-              <span className="num">{topic.fmt(value)}</span>
-            </div>
-            {monthlyEstimate !== null && (
-              <div className="monthly-estimate-box">
-                <span className="lbl">월 예상 실수령액</span>
-                <span className="val">약 {monthlyEstimate.toLocaleString()}만원</span>
-              </div>
-            )}
-          </div>
+      {topic.id === 'income_salary' && (
+        <IncomeSalaryForm
+          age={age}
+          gender={gender}
+          formState={incomeSalaryForm}
+          onChange={setIncomeSalaryForm}
+          setAge={setAge}
+          setGender={setGender}
+          onNext={onNext}
+        />
+      )}
 
-          <div className="slider-container">
-            <input
-              type="range"
-              min={topic.min}
-              max={topic.max}
-              step={topic.step}
-              value={value}
-              className="custom-range-slider"
-              onChange={(e) => setValue(Number(e.target.value))}
-            />
-          </div>
+      {topic.id === 'spending_style' && (
+        <SpendingStyleForm
+          age={age}
+          gender={gender}
+          formState={spendingStyleForm}
+          onChange={setSpendingStyleForm}
+          setAge={setAge}
+          setGender={setGender}
+          onNext={onNext}
+        />
+      )}
 
-          <div className="range-ticks-row">
-            <span>{topic.fmt(topic.min)}</span>
-            <span>{topic.fmt(Math.round((topic.min + topic.max) * 0.35))}</span>
-            <span>{topic.fmt(Math.round((topic.min + topic.max) * 0.7))}</span>
-            <span>{topic.fmt(topic.max)}+</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 제출 블루 메인 버튼 */}
-      <div className="input-submit-wrap">
-        <button className="btn-primary-blue" disabled={!age || !gender} onClick={onNext}>
-          🔥 팩폭 결과 확인하기
-        </button>
-      </div>
+      {topic.id === 'dating_count' && (
+        <DatingCountForm
+          age={age}
+          gender={gender}
+          formState={datingCountForm}
+          onChange={setDatingCountForm}
+          setAge={setAge}
+          setGender={setGender}
+          onNext={onNext}
+        />
+      )}
     </div>
   )
 }
 
 const STEPS = [
-  '비슷한 조건 또래 팩폭 데이터 추출 중… 📊',
+  '2024 국가건강검진 실측 데이터 추출 중… 📊',
   '분포곡선 위에서 내 리얼 위치 검색 중… 🔍',
   '팩폭 결과 준비 완료! 멘탈 잡으세요 💥',
 ]
@@ -476,12 +748,12 @@ function ChartScreen({
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
 
-  // 순차 등장 Step (1: 캐릭터 카드 먼저 등장, 2: 종합 리포트 및 수치 카드 등장)
   const [step, setStep] = useState(1)
   const fullText = useMemo(() => comprehensiveSummary(result), [result])
   const [typedText, setTypedText] = useState('')
 
-  // 1단계 -> 2단계 순차 전환 (0.8초 후)
+  const physicalStats = result.extraInfo?.physicalStats
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setStep(2)
@@ -489,7 +761,6 @@ function ChartScreen({
     return () => clearTimeout(timer)
   }, [])
 
-  // 2단계 전환 후 타이핑 효과 시작
   useEffect(() => {
     if (step < 2) return
     let index = 0
@@ -566,13 +837,13 @@ function ChartScreen({
         {/* 상단 뱃지 & 타이틀 헤더 */}
         <div className="result-header-section">
           <div className="result-pill-badge">
-            💰 {result.topic.navTitle} 팩폭 결과
+            {result.topic.emoji} {result.topic.navTitle} 팩폭 결과
           </div>
           <div className="result-sub-branding">
             평균인간 · {result.topic.navTitle}
           </div>
           <h1 className="result-main-headline">
-            {headline(result)} 💸
+            {headline(result)}
           </h1>
           <div className="result-meta-chips">
             <span className="meta-chip">{metaLabel} 기준</span>
@@ -586,50 +857,161 @@ function ChartScreen({
           <TypeResultCard result={result} onShare={onShare} onSave={onSave} busy={busy} cardInnerRef={characterCardRef} />
         </div>
 
-        {/* 3. 종합 팩폭 리포트 분석 카드 (2단계: 캐릭터 카드 다음 순차적으로 등장) */}
-        {step >= 2 && (
-          <div className="card-box summary-report-card animate-fade-up">
+        {/* 3-A. 신체 조건 특화: 차트 2개 (1. 키 분포곡선 + 2. 몸무게 분포곡선) */}
+        {step >= 2 && physicalStats && (
+          <>
+            {/* 차트 1: 키 (신장) 분포곡선 */}
+            <div className="card-box summary-report-card animate-fade-up" style={{ marginTop: 12 }}>
+              <div className="report-card-header">
+                <span className="report-badge">📏 1. 키 (신장) 분포곡선</span>
+                <span className="chart-highlight-badge" style={{ background: '#ecfdf5', color: '#059669', borderColor: '#a7f3d0' }}>
+                  상위 {Math.round(physicalStats.heightResult.topPercent)}% 지점
+                </span>
+              </div>
+              
+              <div className="chart-svg-container" style={{ margin: '8px 0' }}>
+                <DistributionChart result={physicalStats.heightResult} width={310} height={135} compact />
+              </div>
+
+              <div className="stats-triple-row" style={{ marginTop: 8 }}>
+                <div className="stat-box">
+                  <span className="stat-label">또래 평균 키</span>
+                  <b className="stat-val">{physicalStats.meanHeight.toFixed(1)}cm</b>
+                </div>
+                <div className="stat-box me-highlight-box">
+                  <div className="me-top-tag">내 키</div>
+                  <span className="stat-label">내 신장</span>
+                  <b className="stat-val me-val">{result.value.toFixed(1)}cm</b>
+                </div>
+                <div className="stat-box">
+                  <span className="stat-label">평균 대비</span>
+                  <b className="stat-val diff-val">
+                    {physicalStats.heightDiff >= 0 ? '+' : ''}
+                    {physicalStats.heightDiff.toFixed(1)}cm
+                  </b>
+                </div>
+              </div>
+            </div>
+
+            {/* 차트 2: 몸무게 (체중) 분포곡선 */}
+            <div className="card-box summary-report-card animate-fade-up" style={{ marginTop: 14 }}>
+              <div className="report-card-header">
+                <span className="report-badge" style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#7c3aed' }}>
+                  ⚖️ 2. 몸무게 (체중) 분포곡선
+                </span>
+                <span className="chart-highlight-badge" style={{ background: '#f5f3ff', color: '#7c3aed', borderColor: '#ddd6fe' }}>
+                  상위 {Math.round(physicalStats.weightResult.topPercent)}% 지점
+                </span>
+              </div>
+              
+              <div className="chart-svg-container" style={{ margin: '8px 0' }}>
+                <DistributionChart result={physicalStats.weightResult} width={310} height={135} compact />
+              </div>
+
+              <div className="stats-triple-row" style={{ marginTop: 8 }}>
+                <div className="stat-box">
+                  <span className="stat-label">또래 평균 체중</span>
+                  <b className="stat-val">{physicalStats.meanWeight.toFixed(1)}kg</b>
+                </div>
+                <div className="stat-box me-highlight-box" style={{ borderColor: '#8b5cf6' }}>
+                  <div className="me-top-tag" style={{ background: '#8b5cf6' }}>내 체중</div>
+                  <span className="stat-label">내 몸무게</span>
+                  <b className="stat-val me-val" style={{ color: '#7c3aed' }}>
+                    {physicalStats.weightResult.value.toFixed(1)}kg
+                  </b>
+                </div>
+                <div className="stat-box">
+                  <span className="stat-label">평균 대비</span>
+                  <b className="stat-val diff-val">
+                    {physicalStats.weightDiff >= 0 ? '+' : ''}
+                    {physicalStats.weightDiff.toFixed(1)}kg
+                  </b>
+                </div>
+              </div>
+            </div>
+
+            {/* BMI 분석 종합 리포트 카드 */}
+            <div className="card-box breakdown-card-box animate-fade-up" style={{ marginTop: 14 }}>
+              <div className="report-card-header">
+                <span className="report-badge">📋 BMI 체질량 종합 분석</span>
+                <span className="rare-pill" style={{ background: '#10b981' }}>{physicalStats.bmiCategory}</span>
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#111827' }}>
+                  BMI 체질량 지수 <b style={{ color: '#059669' }}>{physicalStats.bmi}</b>
+                </div>
+                <p style={{ fontSize: 13, color: '#4b5563', marginTop: 6, lineHeight: 1.5 }}>
+                  {physicalStats.bmiDescription}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 3-B. 일반 주제: 단일 종합 분석 리포트 & 차트 */}
+        {step >= 2 && !physicalStats && (
+          <>
+            <div className="card-box summary-report-card animate-fade-up">
+              <div className="report-card-header">
+                <span className="report-badge">📋 종합 분석 리포트</span>
+                <span className="chart-highlight-badge">상위 {Math.round(result.topPercent)}% 지점</span>
+              </div>
+              
+              {/* 차트 영역 */}
+              <div className="chart-svg-container" style={{ margin: '8px 0' }}>
+                <DistributionChart result={result} width={310} height={135} compact />
+              </div>
+
+              {/* 리포트 타이핑 효과 텍스트 */}
+              <p className="report-text typed-text-area">
+                {typedText}
+                {typedText.length < fullText.length && <span className="typing-cursor">|</span>}
+              </p>
+            </div>
+
+            {/* 3열 수치 박스 */}
+            <div className="stats-triple-row animate-fade-up">
+              <div className="stat-box">
+                <span className="stat-label">또래 평균</span>
+                <b className="stat-val">{result.topic.fmt(result.model.median)}</b>
+              </div>
+              <div className="stat-box me-highlight-box">
+                <div className="me-top-tag">나</div>
+                <span className="stat-label">내 {result.topic.navTitle.replace(' 위치', '')}</span>
+                <b className="stat-val me-val">{result.topic.fmt(result.value)}</b>
+              </div>
+              <div className="stat-box">
+                <span className="stat-label">차이</span>
+                <b className="stat-val diff-val">
+                  {result.diff >= 0 ? '+' : '−'}
+                  {result.topic.fmt(Math.abs(result.diff))}
+                </b>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 이상형 조건별 상세 브레이크다운 카드 */}
+        {step >= 2 && result.extraInfo?.breakdownItems && (
+          <div className="card-box breakdown-card-box animate-fade-up" style={{ marginTop: 12 }}>
             <div className="report-card-header">
-              <span className="report-badge">📋 종합 분석 리포트</span>
-              <span className="chart-highlight-badge">상위 {Math.round(result.topPercent)}% 지점</span>
+              <span className="report-badge">🔍 이상형 조건별 희소성 분석</span>
             </div>
-            
-            {/* 차트 영역 */}
-            <div className="chart-svg-container" style={{ margin: '8px 0' }}>
-              <DistributionChart result={result} width={310} height={135} compact />
-            </div>
-
-            {/* 리포트 타이핑 효과 텍스트 */}
-            <p className="report-text typed-text-area">
-              {typedText}
-              {typedText.length < fullText.length && <span className="typing-cursor">|</span>}
-            </p>
-          </div>
-        )}
-
-        {/* 4. 3열 수치 박스 (2단계 순차 등장) */}
-        {step >= 2 && (
-          <div className="stats-triple-row animate-fade-up">
-            <div className="stat-box">
-              <span className="stat-label">또래 평균</span>
-              <b className="stat-val">{result.topic.fmt(result.model.median)}</b>
-            </div>
-            <div className="stat-box me-highlight-box">
-              <div className="me-top-tag">나</div>
-              <span className="stat-label">내 {result.topic.navTitle.replace(' 위치', '')}</span>
-              <b className="stat-val me-val">{result.topic.fmt(result.value)}</b>
-            </div>
-            <div className="stat-box">
-              <span className="stat-label">차이</span>
-              <b className="stat-val diff-val">
-                {result.diff >= 0 ? '+' : '−'}
-                {result.topic.fmt(Math.abs(result.diff))}
-              </b>
+            <div className="breakdown-list">
+              {result.extraInfo.breakdownItems.map((item, idx) => (
+                <div key={idx} className={`breakdown-row-item ${item.isRare ? 'rare-highlight' : ''}`}>
+                  <div className="item-title">
+                    <span>{item.label}</span>
+                    {item.isRare && <span className="rare-pill">🔥 희귀 조건</span>}
+                  </div>
+                  <div className="item-prob-text">{item.probText}</div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* 5. 최하단 팩폭 문구 & 브랜딩 푸터 (2단계) */}
+        {/* 5. 최하단 팩폭 문구 & 브랜딩 푸터 */}
         {step >= 2 && (
           <div className="result-footer-section animate-fade-up">
             <h3 className="verdict-title">{verdict(result)}</h3>
@@ -658,4 +1040,3 @@ function downloadBlob(blob: Blob) {
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
-

@@ -20,7 +20,7 @@ export const GENDER_OPTIONS: { value: Gender; label: string }[] = [
 ]
 
 // 표준정규 CDF (Abramowitz & Stegun 7.1.26)
-function normalCdf(z: number): number {
+export function normalCdf(z: number): number {
   const t = 1 / (1 + 0.2316419 * Math.abs(z))
   const d = 0.3989422804014327 * Math.exp(-0.5 * z * z)
   let p =
@@ -29,7 +29,7 @@ function normalCdf(z: number): number {
   return z >= 0 ? p : 1 - p
 }
 
-function clamp(v: number, lo: number, hi: number) {
+export function clamp(v: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, v))
 }
 
@@ -70,6 +70,23 @@ export interface Result {
   ratio: number
   /** 비슷한 100명 중 나보다 값이 작은 사람 수 */
   peopleBelow: number
+  /** 추가 상세 정보 (이상형 분석, 신체 스펙 분석 등) */
+  extraInfo?: {
+    breakdownItems?: { label: string; probText: string; isRare: boolean }[]
+    radarScores?: { label: string; score: number }[]
+    subtitleSummary?: string
+    physicalStats?: {
+      heightResult: Result
+      weightResult: Result
+      meanHeight: number
+      meanWeight: number
+      heightDiff: number
+      weightDiff: number
+      bmi: number
+      bmiCategory: string
+      bmiDescription: string
+    }
+  }
 }
 
 export function computeResult(

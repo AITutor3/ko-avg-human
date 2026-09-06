@@ -335,55 +335,72 @@ const ideal_match: Topic = {
 }
 
 // ─────────────────────────────────────────────────────────
-// 5. 결혼 시장에서 나는 얼마나 희귀한 조건일까? (marriage_rarity)
-const marriage_rarity: Topic = {
-  id: 'marriage_rarity',
-  emoji: '💍',
-  accent: '#7209b7',
-  navTitle: '결혼시장 희소성',
-  question: '결혼 시장에서 나는\n얼마나 희귀한 인재일까? 💍',
-  teaser: '대한민국 희귀종 등판! 나와 같은 조건은 100명 중 약 4명꼴 👑',
-  viewsCount: 24.5,
-  inputLabel: '내 종합 프로필 매력 스펙트럼 (점수)',
-  inputHint: '나이 + 소득 + 자산 + 키 종합 밸런스 점수',
-  min: 10,
-  max: 100,
-  step: 5,
-  default: 65,
-  medianByAge: { '10s': 50, '20s': 55, '30s': 60, '40s': 60, '50s': 55, '60+': 50 },
-  genderAdjust: {},
-  sigma: 0.35,
-  fmt: (v) => `${v}점`,
-  compareVerb: '희소성이 높아요',
-  resultTitle: (r) => `나와 동일한 조건은\n또래 100명 중 약 ${Math.max(1, Math.round(100 - r.percentile))}명꼴! 👑`,
-  headline: (r) => `결혼 시장 희귀종 등판! 100명 중 약 ${Math.max(1, Math.round(100 - r.percentile))}명 존재 💍`,
+// 5. 나의 신체적 조건은? (physical_condition - 키, 몸무게)
+const physical_condition: Topic = {
+  id: 'physical_condition',
+  emoji: '🏃',
+  accent: '#059669',
+  navTitle: '신체적 조건',
+  question: '나의 신체적 조건은?\n또래 중 상위 몇 %일까? 🏃',
+  teaser: '2024 국가건강검진 실측치! 내 키 & 몸무게 팩폭 위치 📏',
+  viewsCount: 43.7,
+  inputLabel: '내 키 (신장 cm)',
+  inputHint: '2024년 국가건강검진 공식 실측 통계 기반',
+  min: 140,
+  max: 200,
+  step: 0.5,
+  default: 174,
+  medianByAge: { '10s': 169.2, '20s': 168.0, '30s': 169.2, '40s': 168.1, '50s': 164.9, '60+': 161.7 },
+  genderAdjust: {
+    female: { '10s': -7.5, '20s': -6.5, '30s': -7.3, '40s': -7.2, '50s': -6.6, '60+': -6.1 },
+    male: { '10s': 5.0, '20s': 6.2, '30s': 5.3, '40s': 5.8, '50s': 6.2, '60+': 6.5 },
+  },
+  sigma: 0.035,
+  fmt: (v) => `${Number(v).toFixed(1)}cm`,
+  compareVerb: '키가 커요',
+  resultTitle: (r) => `대한민국 또래 중\n신장 상위 ${Math.round(r.topPercent)}% 피지컬! 🏃`,
+  headline: (r) => `내 피지컬 깠다! 또래 100명 중 ${r.peopleBelow}명보다 큼 📏`,
   verdict: (r) =>
     r.topPercent <= 15
-      ? '상위권 육각형 완벽 프로필! 결혼 시장 희귀종 인정'
-      : '무난하고 가치 있는 매력적인 조건입니다!',
+      ? '기럭지 우월 모델형 피지컬! 남다른 옷태와 비율의 소유자 👑'
+      : r.topPercent <= 50
+      ? '균형 잡힌 대한민국 표준 이상의 황금 피지컬! 🌿'
+      : '친근하고 안정적인 다부진 체격의 소유자! 👍',
   labels: between(
     [
       {
-        upTo: 10,
-        name: '육각형 완벽 인재',
+        upTo: 15,
+        name: '기럭지 우월 모델형',
         emoji: '👑',
         card: {
-          badgeTitle: '육각형 챔피언',
-          subTitle: '모든 스펙이 균형 잡힌 최고의 인재',
-          bubbleLeft: '나 같은 조건은',
-          bubbleRight: '대한민국 희귀종이지!',
-          characterEmoji: '👑💍🐻',
+          badgeTitle: '기럭지 모델형',
+          subTitle: '압도적인 비율과 남다른 옷태',
+          bubbleLeft: '위에서 내려다보는',
+          bubbleRight: '공기는 참 상쾌해!',
+          characterEmoji: '👑🦒🐻',
+        },
+      },
+      {
+        upTo: 50,
+        name: '황금 밸런스 표준형',
+        emoji: '💎',
+        card: {
+          badgeTitle: '황금 피지컬',
+          subTitle: '건강하고 균형 잡힌 신체 밸런스',
+          bubbleLeft: '가장 이상적인',
+          bubbleRight: '완벽한 밸런스 피지컬!',
+          characterEmoji: '💎🏃🐻',
         },
       },
     ],
     {
-      name: '친근한 매력 인재',
+      name: '다부진 친근형',
       emoji: '😊',
       card: {
-        badgeTitle: '볼매 유망주',
-        subTitle: '볼수록 진국인 매력 소유자',
-        bubbleLeft: '스펙보다 깊은',
-        bubbleRight: '내 진짜 매력을 봐!',
+        badgeTitle: '다부진 매력형',
+        subTitle: '친근하고 귀여운 다부진 매력',
+        bubbleLeft: '비율보다 중요한 건',
+        bubbleRight: '건강한 활력이지!',
         characterEmoji: '😊🐻',
       },
     },
@@ -465,7 +482,7 @@ export const TOPICS: Topic[] = [
   dating_count,
   income_salary,
   ideal_match,
-  marriage_rarity,
+  physical_condition,
   spending_style,
 ]
 
