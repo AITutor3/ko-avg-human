@@ -12,7 +12,7 @@ import { TOPICS, type Topic } from './topics'
 import { comprehensiveSummary, headline, verdict } from './copy'
 import DistributionChart from './DistributionChart'
 import TypeResultCard from './TypeResultCard'
-import { event, pageview } from './gtag'
+import { event, initGA, pageview } from './gtag'
 
 type Stage = 'landing' | 'input' | 'analyzing' | 'chart'
 
@@ -22,6 +22,10 @@ export default function App() {
   const [age, setAge] = useState<AgeBucket | null>(null)
   const [gender, setGender] = useState<Gender | null>(null)
   const [value, setValue] = useState(4)
+
+  useEffect(() => {
+    initGA()
+  }, [])
 
   useEffect(() => {
     pageview(`/${stage}${topic ? `/${topic.id}` : ''}`)

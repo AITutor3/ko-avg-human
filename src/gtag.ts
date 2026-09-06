@@ -1,7 +1,4 @@
-// Google Analytics (GA4) 트래킹 유틸리티
-// 환경 변수 VITE_GA_MEASUREMENT_ID가 설정되어 있으면 사용하고, 기본값으로 플레이스홀더를 제공합니다.
-
-export const GA_TRACKING_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-5335J9HMVZ'
+export const GA_TRACKING_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || ''
 
 declare global {
   interface Window {
@@ -10,9 +7,28 @@ declare global {
   }
 }
 
+// GA4 스크립트 동적 로드 함수 (환경 변수 ID가 존재할 때 로드)
+export const initGA = () => {
+  if (!GA_TRACKING_ID || typeof window === 'undefined') return
+  if (document.getElementById('ga-gtag-script')) return
+
+  const script = document.createElement('script')
+  script.id = 'ga-gtag-script'
+  script.async = true
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`
+  document.head.appendChild(script)
+
+  window.dataLayer = window.dataLayer || []
+  window.gtag = function () {
+    window.dataLayer?.push(arguments)
+  }
+  window.gtag('js', new Date())
+  window.gtag('config', GA_TRACKING_ID, { send_page_view: true })
+}
+
 // 페이지뷰 트래킹 (스태이지/화면 전환 시 호출)
 export const pageview = (url: string) => {
-  if (typeof window !== 'undefined' && window.gtag) {
+  if (typeof window !== 'undefined' && window.gtag && GA_TRACKING_ID) {
     window.gtag('config', GA_TRACKING_ID, {
       page_path: url,
     })
