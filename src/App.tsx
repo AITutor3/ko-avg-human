@@ -12,6 +12,7 @@ import { TOPICS, type Topic } from './topics'
 import { comprehensiveSummary, headline, verdict } from './copy'
 import DistributionChart from './DistributionChart'
 import TypeResultCard from './TypeResultCard'
+import { event, pageview } from './gtag'
 
 type Stage = 'landing' | 'input' | 'analyzing' | 'chart'
 
@@ -22,6 +23,10 @@ export default function App() {
   const [gender, setGender] = useState<Gender | null>(null)
   const [value, setValue] = useState(4)
 
+  useEffect(() => {
+    pageview(`/${stage}${topic ? `/${topic.id}` : ''}`)
+  }, [stage, topic])
+
   const result = useMemo<Result | null>(
     () => (topic && age && gender ? computeResult(topic, age, gender, value) : null),
     [topic, age, gender, value],
@@ -31,6 +36,7 @@ export default function App() {
     setTopic(t)
     setValue(t.default)
     setStage('input')
+    event({ action: 'select_topic', category: 'interaction', label: t.navTitle })
   }
 
   const accentStyle = topic ? ({ ['--accent' as string]: topic.accent } as React.CSSProperties) : undefined
