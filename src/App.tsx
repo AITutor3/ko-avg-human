@@ -152,36 +152,71 @@ function Landing({ onPick }: { onPick: (t: Topic) => void }) {
     <div className="screen pm-landing-screen-clean">
       <HeaderBar onShareUrl={handleShareUrl} />
 
-      {/* 1. 상단 소프트 핑크 메인 히어로 카드 */}
+      {/* 1. 메인 히어로 카드 (슬라이드 전환 시 테마 색상 동적 전환) */}
       <section className="pm-hero-section-clean">
-        <div className="pm-hero-card-clean">
+        <div
+          className="pm-hero-card-clean"
+          style={{
+            background: `linear-gradient(145deg, #ffffff 0%, ${currentTopic.accent}18 100%)`,
+            borderColor: `${currentTopic.accent}40`,
+            boxShadow: `0 8px 24px ${currentTopic.accent}25`,
+            transition: 'all 0.4s ease',
+          }}
+        >
           <div className="pm-hero-card-top">
-            <span className="pm-pill-badge-red">🔥 실시간 인기 TOP {heroIdx + 1}</span>
+            <span
+              className="pm-pill-badge-red"
+              style={{
+                background: currentTopic.accent,
+                color: '#ffffff',
+                fontWeight: 900,
+                boxShadow: `0 3px 10px ${currentTopic.accent}50`,
+                transition: 'all 0.3s ease',
+              }}
+            >
+              🔥 실시간 인기 TOP {heroIdx + 1}
+            </span>
             
             <div className="pm-hero-nav-controls">
-              <button className="hero-arrow-btn" onClick={prevHero} aria-label="이전 카드">‹</button>
+              <button
+                className="hero-arrow-btn"
+                onClick={prevHero}
+                aria-label="이전 카드"
+                style={{ color: currentTopic.accent, borderColor: `${currentTopic.accent}40` }}
+              >
+                ‹
+              </button>
               <div className="pm-hero-heart-badge">
                 <span className="heart-emoji">💖</span>
                 <span className="page-num">{heroIdx + 1} / {top3Topics.length}</span>
               </div>
-              <button className="hero-arrow-btn" onClick={nextHero} aria-label="다음 카드">›</button>
+              <button
+                className="hero-arrow-btn"
+                onClick={nextHero}
+                aria-label="다음 카드"
+                style={{ color: currentTopic.accent, borderColor: `${currentTopic.accent}40` }}
+              >
+                ›
+              </button>
             </div>
           </div>
 
           <h1 className="pm-hero-title-clean">
             {currentTopic.question.split('\n')[0]} <br />
-            <span className="highlight-text">{currentTopic.question.split('\n')[1] ?? ''}</span>
+            <span className="highlight-text" style={{ color: currentTopic.accent, transition: 'color 0.3s ease' }}>
+              {currentTopic.question.split('\n')[1] ?? ''}
+            </span>
           </h1>
 
           <p className="pm-hero-sub-clean">{currentTopic.teaser}</p>
 
           <button className="pm-hero-play-btn" onClick={() => onPick(currentTopic)}>
-            <span>플레이 하러가기 (▷ {currentTopic.viewsCount}만)</span>
+            <span>플레이 하러가기</span>
             <span className="arrow">→</span>
           </button>
 
           <div className="pm-hero-metrics-clean">
-            <span className="metric-item">조회 <b className="num">{currentTopic.viewsCount}만</b></span>
+            <span className="metric-item">조회 <b className="num" style={{ color: currentTopic.accent }}>{currentTopic.viewsCount}만</b></span>
             <span className="metric-divider">|</span>
             <span className="metric-item">공감 <span className="stars">★★★★★</span></span>
           </div>
