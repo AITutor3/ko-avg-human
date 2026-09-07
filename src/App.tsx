@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { toPng } from 'html-to-image'
 import {
   groupModel,
@@ -7,7 +8,7 @@ import {
   type Gender,
   type Result,
 } from './stats'
-import { TOPICS, type Topic } from './topics'
+import { TOPICS, topicBySlug, type Topic } from './topics'
 import { comprehensiveSummary, headline, verdict } from './copy'
 import DistributionChart from './DistributionChart'
 import TypeResultCard from './TypeResultCard'
@@ -40,18 +41,13 @@ import {
 type Stage = 'landing' | 'input' | 'analyzing' | 'chart'
 
 export default function App() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [stage, setStage] = useState<Stage>('landing')
   const [topic, setTopic] = useState<Topic | null>(null)
   const [age, setAge] = useState<AgeBucket | null>(null)
   const [gender, setGender] = useState<Gender | null>(null)
   const [viewsMap, setViewsMap] = useState<Record<string, number>>(FALLBACK_VIEWS)
-
-  useEffect(() => {
-    // Neon DB에서 실시간 조회수 불러오기
-    fetchAllTestViews().then((data) => {
-      setViewsMap(data)
-    })
-  }, [])
 
   // 각 주제별 특화 폼 상태
   const [idealMatchForm, setIdealMatchForm] = useState<IdealMatchInput>({
@@ -218,22 +214,53 @@ export default function App() {
     refreshViews()
   }, [])
 
-  function pick(t: Topic) {
-    setTopic(t)
-    setStage('input')
-    event({ action: 'select_topic', category: 'interaction', label: t.navTitle })
+  // URL(경로)을 현재 주제/화면과 동기화한다.
+  // "/" → 랜딩, "/:slug" → 해당 주제 입력 화면 (직접 접속·공유 링크 지원)
+  const recordedSlugRef = useRef<string | null>(null)
+  useEffect(() => {
+    const slug = location.pathname.replace(/^\/+/, '')
 
-    // Neon DB 실시간 조회수 증가 및 로컬 상태 즉시 반영
-    recordTestView(t.id, t.navTitle).then((newCount) => {
-      if (newCount !== null) {
-        setViewsMap((prev) => ({ ...prev, [t.id]: newCount }))
-      }
-    })
+    if (!slug) {
+      if (stage !== 'landing') setStage('landing')
+      recordedSlugRef.current = null
+      refreshViews()
+      return
+    }
+
+    const t = topicBySlug(slug)
+    if (!t) {
+      navigate('/', { replace: true })
+      return
+    }
+
+    if (topic?.id !== t.id) {
+      setTopic(t)
+      setAge(null)
+      setGender(null)
+      setStage('input')
+    } else if (stage === 'landing') {
+      setStage('input')
+    }
+
+    // 주제별 조회수 1 증가 (같은 slug 중복 호출 방지)
+    if (recordedSlugRef.current !== slug) {
+      recordedSlugRef.current = slug
+      event({ action: 'select_topic', category: 'interaction', label: t.navTitle })
+      recordTestView(t.id, t.navTitle).then((newCount) => {
+        if (newCount !== null) {
+          setViewsMap((prev) => ({ ...prev, [t.id]: newCount }))
+        }
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
+
+  function pick(t: Topic) {
+    navigate('/' + t.slug)
   }
 
   const goLanding = () => {
-    setStage('landing')
-    refreshViews()
+    navigate('/')
   }
 
   const accentStyle = topic ? ({ ['--accent' as string]: topic.accent } as React.CSSProperties) : undefined
@@ -276,8 +303,145 @@ export default function App() {
         <ChartScreen
           result={result}
           onRestart={goLanding}
+          onRetry={() => setStage('input')}
         />
       )}
+    </div>
+  )
+}
+
+/** 숫자를 목표값까지 증가시키는 카운트업 애니메이션 */
+function CountUp({ value, duration = 1400 }: { value: number; duration?: number }) {
+  const [display, setDisplay] = useState(0)
+  const fromRef = useRef(0)
+
+  useEffect(() => {
+    const from = fromRef.current
+    const diff = value - from
+    if (diff === 0) return
+    let raf = 0
+    const start = performance.now()
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setDisplay(Math.round(from + diff * eased))
+      if (p < 1) {
+        raf = requestAnimationFrame(tick)
+      } else {
+        fromRef.current = value
+      }
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [value, duration])
+
+  return <>{display.toLocaleString('ko-KR')}</>
+}
+
+/** 텍스트를 한 글자씩 타이핑하듯 보여주는 효과 */
+function TypingText({ text, speed = 32 }: { text: string; speed?: number }) {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    setCount(0)
+    if (!text) return
+    const reduce =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (reduce) {
+      setCount(text.length)
+      return
+    }
+    let i = 0
+    const timer = setInterval(() => {
+      i += 1
+      setCount(i)
+      if (i >= text.length) clearInterval(timer)
+    }, speed)
+    return () => clearInterval(timer)
+  }, [text, speed])
+
+  const done = count >= text.length
+  return (
+    <span className="typing-text">
+      {text.slice(0, count)}
+      {!done && <span className="typing-caret">▋</span>}
+    </span>
+  )
+}
+
+/** 기본 닫힘 상태의 접이식 섹션 */
+function Collapsible({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className={`collapsible ${open ? 'is-open' : ''}`}>
+      <button
+        type="button"
+        className="collapsible-header"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span>{title}</span>
+        <span className="collapsible-chevron">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && <div className="collapsible-body">{children}</div>}
+    </div>
+  )
+}
+
+/** 현재 페이지 URL 공유 버튼 */
+function ShareButton({ title }: { title: string }) {
+  const [copied, setCopied] = useState(false)
+
+  async function share() {
+    const url = typeof window !== 'undefined' ? window.location.href : ''
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url })
+        return
+      } catch {
+        // 취소 시 클립보드로 폴백
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // 무시
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1800)
+  }
+
+  return (
+    <button className="input-share-btn" onClick={share} aria-label="이 테스트 공유하기">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="18" cy="5" r="3"></circle>
+        <circle cx="6" cy="12" r="3"></circle>
+        <circle cx="18" cy="19" r="3"></circle>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+      </svg>
+      <span>{copied ? '링크 복사됨!' : '공유'}</span>
+    </button>
+  )
+}
+
+/** 누적 이용자 수 배너 */
+function VisitorBanner({ total }: { total: number }) {
+  return (
+    <div className="pm-visitor-banner">
+      <span className="pm-visitor-pill">
+        <span className="green-dot" />
+        지금까지 이용한 사람들: <b className="pm-visitor-count"><CountUp value={total} />명</b>
+      </span>
     </div>
   )
 }
@@ -286,7 +450,7 @@ function HeaderBar({ onShareUrl }: { onShareUrl?: () => void }) {
   return (
     <header className="pm-header-clean">
       <div className="pm-logo-clean">
-        <span className="pm-logo-text">평균인간</span>
+        <span className="pm-logo-text">나는 평균일까?</span>
         <span className="pm-logo-dot">•</span>
       </div>
       <div className="pm-header-actions">
@@ -321,6 +485,11 @@ function Landing({
     return viewsMap[topicId] ?? 0
   }
 
+  const totalViews = useMemo(
+    () => TOPICS.reduce((sum, t) => sum + (viewsMap[t.id] ?? 0), 0),
+    [viewsMap],
+  )
+
   const top3Topics = useMemo(() => {
     return [...TOPICS]
       .sort((a, b) => getViewCount(b.id) - getViewCount(a.id))
@@ -347,7 +516,7 @@ function Landing({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: '평균인간 - 대한민국 팩폭 테스트',
+          title: '나는 평균일까? - 대한민국 팩폭 테스트',
           url: shareUrl,
         })
       } catch {
@@ -399,6 +568,7 @@ function Landing({
   return (
     <div className="screen pm-landing-screen-clean">
       <HeaderBar onShareUrl={handleShareUrl} />
+      <VisitorBanner total={totalViews} />
 
       {/* 1. 메인 히어로 좌우 슬라이딩 캐러셀 트랙 */}
       <section className="pm-hero-section-clean">
@@ -474,11 +644,6 @@ function Landing({
                     <span className="arrow">→</span>
                   </button>
 
-                  <div className="pm-hero-metrics-clean">
-                    <span className="metric-item">조회 <b className="num" style={{ color: t.accent }}>{formatViewCount(viewsMap[t.id] ?? 0)}</b></span>
-                    <span className="metric-divider">|</span>
-                    <span className="metric-item">공감 <span className="stars">★★★★★</span></span>
-                  </div>
                 </div>
               </div>
             ))}
@@ -544,7 +709,7 @@ function Landing({
               </div>
               <div className="pm-grid-card-info">
                 <div className="pm-grid-card-title">{t.navTitle}</div>
-                <div className="pm-grid-card-views">▷ {formatViewCount(viewsMap[t.id] ?? 0)} 참여</div>
+                <div className="pm-grid-card-views">▷ {formatViewCount(viewsMap[t.id] ?? 0)}</div>
               </div>
             </div>
           ))}
@@ -612,14 +777,17 @@ function InputScreen({
 }) {
   return (
     <div className="screen input-screen-clean">
-      {/* 1. 상단 뒤로가기 & 주제 뱃지 */}
+      {/* 1. 상단 뒤로가기 & 주제 뱃지 & 공유 버튼 */}
       <div className="input-top-bar">
         <button className="link-back-clean" onClick={onBack}>
           ‹ 다른 주제 고르기
         </button>
-        <span className="topic-pill-badge" style={{ background: `${topic.accent}20`, color: topic.accent }}>
-          {topic.emoji} {topic.navTitle}
-        </span>
+        <div className="input-top-right">
+          <span className="topic-pill-badge" style={{ background: `${topic.accent}20`, color: topic.accent }}>
+            {topic.emoji} {topic.navTitle}
+          </span>
+          <ShareButton title={`나는 평균일까? - ${topic.navTitle} 테스트`} />
+        </div>
       </div>
 
       {/* 2. 메인 질문 타이틀 */}
@@ -630,10 +798,13 @@ function InputScreen({
             {topic.question.split('\n')[1] ?? ''}
           </span>
         </h1>
-        <p className="input-sub-desc">대한민국 2024 국가건강검진 및 공식 모집단 데이터 기반 실측</p>
+        <p className="input-intro-typing">
+          <TypingText text={topic.intro} />
+        </p>
       </div>
 
-      {/* 3. 주제별 특화 폼 렌더링 */}
+      {/* 3. 주제별 특화 폼 렌더링 (기본 닫힘 토글) */}
+      <Collapsible title="📝 내 정보 입력하고 결과 보기 (탭하여 열기)">
       {topic.id === 'ideal_match' && (
         <IdealMatchForm
           age={age}
@@ -705,6 +876,7 @@ function InputScreen({
           onNext={onNext}
         />
       )}
+      </Collapsible>
     </div>
   )
 }
@@ -739,9 +911,11 @@ function Analyzing({ result, onDone }: { result: Result; onDone: () => void }) {
 function ChartScreen({
   result,
   onRestart,
+  onRetry,
 }: {
   result: Result
   onRestart: () => void
+  onRetry?: () => void
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
   const characterCardRef = useRef<HTMLDivElement>(null)
@@ -823,10 +997,15 @@ function ChartScreen({
 
   return (
     <div className="screen chart-screen-wrap" style={{ padding: '16px 14px', background: '#f8f9fa' }}>
-      {/* 1. 상단 뒤로가기 버튼 */}
-      <button className="link-back" onClick={onRestart} style={{ marginBottom: 16, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, color: '#8b95a1' }}>
-        ‹ 다른 테스트 선택하기
-      </button>
+      {/* 1. 레퍼런스 100% 일치 상단 네비게이션 & 뱃지 바 */}
+      <div className="result-top-nav-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <button className="link-back" onClick={onRestart} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13.5, fontWeight: 700, color: '#64748b' }}>
+          ‹ 다른 테스트 선택하기
+        </button>
+        <span className="result-pill-badge" style={{ background: '#e0f2fe', color: '#0284c7', padding: '5px 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 800 }}>
+          {result.topic.emoji} {result.topic.navTitle} 팩폭 결과
+        </span>
+      </div>
 
       {/* 캡처 & 렌더링 카드 전체 Container */}
       <div
@@ -834,21 +1013,17 @@ function ChartScreen({
         ref={cardRef}
         style={{ ['--accent' as string]: result.topic.accent } as React.CSSProperties}
       >
-        {/* 상단 뱃지 & 타이틀 헤더 */}
+        {/* 상단 서브 브랜딩 & 메인 팩폭 타이틀 헤더 */}
         <div className="result-header-section">
-          <div className="result-pill-badge">
-            {result.topic.emoji} {result.topic.navTitle} 팩폭 결과
-          </div>
           <div className="result-sub-branding">
-            평균인간 · {result.topic.navTitle}
+            나는 평균일까? · {result.topic.navTitle}
           </div>
           <h1 className="result-main-headline">
             {headline(result)}
           </h1>
           <div className="result-meta-chips">
             <span className="meta-chip">{metaLabel} 기준</span>
-            <span className="divider">|</span>
-            <span className="top-percent-chip">🔥 상위 {Math.round(result.topPercent)}%</span>
+            <span className="top-percent-chip-red">🔥 상위 {Math.round(result.topPercent)}%</span>
           </div>
         </div>
 
@@ -861,15 +1036,17 @@ function ChartScreen({
         {step >= 2 && physicalStats && (
           <>
             {/* 차트 1: 키 (신장) 분포곡선 */}
-            <div className="card-box summary-report-card animate-fade-up" style={{ marginTop: 12 }}>
+            <div className="card-box summary-report-card animate-fade-up" style={{ marginTop: 12, background: '#ffffff', border: '1px solid #eef2f6', borderRadius: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
               <div className="report-card-header">
-                <span className="report-badge">📏 1. 키 (신장) 분포곡선</span>
-                <span className="chart-highlight-badge" style={{ background: '#ecfdf5', color: '#059669', borderColor: '#a7f3d0' }}>
+                <span className="report-badge-blue" style={{ background: '#2563eb', color: '#ffffff', padding: '6px 14px', borderRadius: 999, fontSize: 12, fontWeight: 800 }}>
+                  ✏️ 1. 키 (신장) 분포포지션
+                </span>
+                <span className="chart-highlight-badge" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '5px 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 800 }}>
                   상위 {Math.round(physicalStats.heightResult.topPercent)}% 지점
                 </span>
               </div>
               
-              <div className="chart-svg-container" style={{ margin: '8px 0' }}>
+              <div className="chart-svg-container" style={{ margin: '12px 0 8px' }}>
                 <DistributionChart result={physicalStats.heightResult} width={310} height={135} compact />
               </div>
 
@@ -878,14 +1055,14 @@ function ChartScreen({
                   <span className="stat-label">또래 평균 키</span>
                   <b className="stat-val">{physicalStats.meanHeight.toFixed(1)}cm</b>
                 </div>
-                <div className="stat-box me-highlight-box">
-                  <div className="me-top-tag">내 키</div>
+                <div className="stat-box me-highlight-box" style={{ borderColor: '#f59e0b' }}>
+                  <div className="me-top-tag" style={{ background: '#f59e0b' }}>내 키</div>
                   <span className="stat-label">내 신장</span>
-                  <b className="stat-val me-val">{result.value.toFixed(1)}cm</b>
+                  <b className="stat-val me-val" style={{ color: '#d97706' }}>{result.value.toFixed(1)}cm</b>
                 </div>
                 <div className="stat-box">
                   <span className="stat-label">평균 대비</span>
-                  <b className="stat-val diff-val">
+                  <b className="stat-val diff-val" style={{ color: '#2563eb' }}>
                     {physicalStats.heightDiff >= 0 ? '+' : ''}
                     {physicalStats.heightDiff.toFixed(1)}cm
                   </b>
@@ -894,17 +1071,17 @@ function ChartScreen({
             </div>
 
             {/* 차트 2: 몸무게 (체중) 분포곡선 */}
-            <div className="card-box summary-report-card animate-fade-up" style={{ marginTop: 14 }}>
+            <div className="card-box summary-report-card animate-fade-up" style={{ marginTop: 14, background: '#ffffff', border: '1px solid #eef2f6', borderRadius: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
               <div className="report-card-header">
-                <span className="report-badge" style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#7c3aed' }}>
-                  ⚖️ 2. 몸무게 (체중) 분포곡선
+                <span className="report-badge-purple" style={{ background: '#4f46e5', color: '#ffffff', padding: '6px 14px', borderRadius: 999, fontSize: 12, fontWeight: 800 }}>
+                  ⚖️ 2. 몸무게 (체중) 분포포지션
                 </span>
-                <span className="chart-highlight-badge" style={{ background: '#f5f3ff', color: '#7c3aed', borderColor: '#ddd6fe' }}>
+                <span className="chart-highlight-badge" style={{ background: '#eff6ff', color: '#3b82f6', border: '1px solid #bfdbfe', padding: '5px 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 800 }}>
                   상위 {Math.round(physicalStats.weightResult.topPercent)}% 지점
                 </span>
               </div>
               
-              <div className="chart-svg-container" style={{ margin: '8px 0' }}>
+              <div className="chart-svg-container" style={{ margin: '12px 0 8px' }}>
                 <DistributionChart result={physicalStats.weightResult} width={310} height={135} compact />
               </div>
 
@@ -913,16 +1090,16 @@ function ChartScreen({
                   <span className="stat-label">또래 평균 체중</span>
                   <b className="stat-val">{physicalStats.meanWeight.toFixed(1)}kg</b>
                 </div>
-                <div className="stat-box me-highlight-box" style={{ borderColor: '#8b5cf6' }}>
-                  <div className="me-top-tag" style={{ background: '#8b5cf6' }}>내 체중</div>
+                <div className="stat-box me-highlight-box" style={{ borderColor: '#4f46e5' }}>
+                  <div className="me-top-tag" style={{ background: '#4f46e5' }}>내 체중</div>
                   <span className="stat-label">내 몸무게</span>
-                  <b className="stat-val me-val" style={{ color: '#7c3aed' }}>
+                  <b className="stat-val me-val" style={{ color: '#4338ca' }}>
                     {physicalStats.weightResult.value.toFixed(1)}kg
                   </b>
                 </div>
                 <div className="stat-box">
                   <span className="stat-label">평균 대비</span>
-                  <b className="stat-val diff-val">
+                  <b className="stat-val diff-val" style={{ color: '#2563eb' }}>
                     {physicalStats.weightDiff >= 0 ? '+' : ''}
                     {physicalStats.weightDiff.toFixed(1)}kg
                   </b>
@@ -931,16 +1108,20 @@ function ChartScreen({
             </div>
 
             {/* BMI 분석 종합 리포트 카드 */}
-            <div className="card-box breakdown-card-box animate-fade-up" style={{ marginTop: 14 }}>
+            <div className="card-box breakdown-card-box animate-fade-up" style={{ marginTop: 14, background: '#ffffff', border: '1px solid #eef2f6', borderRadius: 24, padding: 18, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
               <div className="report-card-header">
-                <span className="report-badge">📋 BMI 체질량 종합 분석</span>
-                <span className="rare-pill" style={{ background: '#10b981' }}>{physicalStats.bmiCategory}</span>
+                <span className="report-badge" style={{ background: 'transparent', color: '#1e293b', fontSize: 13, fontWeight: 800, padding: 0 }}>
+                  📋 BMI 체질량 종합 분석
+                </span>
+                <span className="rare-pill" style={{ background: '#dcfce7', color: '#16a34a', border: '1px solid #bbf7d0', padding: '4px 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 800 }}>
+                  {physicalStats.bmiCategory}
+                </span>
               </div>
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#111827' }}>
-                  BMI 체질량 지수 <b style={{ color: '#059669' }}>{physicalStats.bmi}</b>
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#0f172a' }}>
+                  BMI 체질량 지수 <b style={{ color: '#059669', marginLeft: 4 }}>{physicalStats.bmi}</b>
                 </div>
-                <p style={{ fontSize: 13, color: '#4b5563', marginTop: 6, lineHeight: 1.5 }}>
+                <p style={{ fontSize: 13, color: '#64748b', marginTop: 6, lineHeight: 1.5, fontWeight: 600 }}>
                   {physicalStats.bmiDescription}
                 </p>
               </div>
@@ -1013,10 +1194,32 @@ function ChartScreen({
 
         {/* 5. 최하단 팩폭 문구 & 브랜딩 푸터 */}
         {step >= 2 && (
+          <div className="card-box result-source-card animate-fade-up">
+            <div className="result-source-heading">📚 이 결과에 사용한 통계자료</div>
+            {result.topic.sourceUrl ? (
+              <a
+                className="result-source-link"
+                href={result.topic.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {result.topic.sourceTitle}
+              </a>
+            ) : (
+              <strong className="result-source-title">{result.topic.sourceTitle}</strong>
+            )}
+            <p className="result-source-detail">{result.topic.sourceDetail}</p>
+            <p className="result-fun-disclaimer">
+              ※ 개인의 정확한 순위나 국가기관이 공표한 백분위가 아닙니다. 공개 통계와 자체 추정 모델을
+              결합한 재미용 결과이니 가볍게 봐주세요.
+            </p>
+          </div>
+        )}
+
+        {step >= 2 && (
           <div className="result-footer-section animate-fade-up">
-            <h3 className="verdict-title">{verdict(result)}</h3>
             <div className="footer-viral-text">
-              너는 상위 몇 %야? · <span className="brand-link">평균인간에서 확인</span>
+              너는 상위 몇 %야? · <span className="brand-link">나는 평균일까?에서 확인</span>
             </div>
           </div>
         )}
@@ -1024,10 +1227,14 @@ function ChartScreen({
 
       {msg && <p className="mini-hint">{msg}</p>}
 
-      <div className="spacer" style={{ minHeight: 16 }} />
-      <button className="btn ghost" onClick={onRestart} style={{ marginBottom: 12, marginTop: 16 }}>
-        🔄 다른 테스트도 해보기
-      </button>
+      <div className="result-bottom-actions" style={{ display: 'flex', gap: 10, marginTop: 16, marginBottom: 12 }}>
+        <button className="btn outline" onClick={onRetry || onRestart} style={{ flex: 1 }}>
+          🔄 다시하기
+        </button>
+        <button className="btn ghost" onClick={onRestart} style={{ flex: 1 }}>
+          📋 다른 테스트도 해보기
+        </button>
+      </div>
     </div>
   )
 }

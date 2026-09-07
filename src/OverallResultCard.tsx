@@ -8,11 +8,11 @@ interface Props {
 
 export const OverallResultCard: React.FC<Props> = ({ overall, onReset }) => {
   const handleShare = async () => {
-    const text = `[평균인간] 나는 대한민국 평균에서 ${overall.deviationIndex}% 떨어져 있는 인간! 🦄\n칭호: ${overall.characterTitle}\n나의 평범 이탈 지수 측정해보세요!`
+    const text = `[나는 평균일까?] 나는 대한민국 평균에서 ${overall.deviationIndex}% 떨어져 있는 인간! 🦄\n칭호: ${overall.characterTitle}\n나의 평범 이탈 지수 측정해보세요!`
     if (navigator.share) {
       try {
         await navigator.share({
-          title: '평균인간 - 내 평범 이탈 지수',
+          title: '나는 평균일까? - 내 평범 이탈 지수',
           text,
           url: window.location.href,
         })

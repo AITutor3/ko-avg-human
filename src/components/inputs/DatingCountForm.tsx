@@ -94,30 +94,9 @@ export default function DatingCountForm({
           </div>
           <div className="range-ticks-row">
             <span>0회 (모태솔로)</span>
-            <span>3회 (평균)</span>
+            <span>4~6회 (참고 구간)</span>
             <span>7회</span>
             <span>20회+</span>
-          </div>
-        </div>
-
-        {/* 최장 연애 기간 */}
-        <div className="sub-field-group" style={{ marginTop: 18 }}>
-          <span className="sub-field-title">가장 길게 만났던 최장 연애 기간</span>
-          <div className="chip-buttons-group grid-2">
-            {[
-              { val: 'under_6m', label: '6개월 미만 (단기)' },
-              { val: '6m_1y', label: '6개월 ~ 1년' },
-              { val: '1y_3y', label: '1년 ~ 3년 (진국)' },
-              { val: '3y_plus', label: '3년 이상 (장기연애)' },
-            ].map((item) => (
-              <button
-                key={item.val}
-                className={`select-chip-btn ${formState.longestDuration === item.val ? 'active' : ''}`}
-                onClick={() => onChange({ ...formState, longestDuration: item.val as any })}
-              >
-                {item.label}
-              </button>
-            ))}
           </div>
         </div>
       </div>

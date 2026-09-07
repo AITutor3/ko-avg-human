@@ -7,20 +7,30 @@ export interface TopicCardBadge {
   bubbleLeft: string
   bubbleRight: string
   characterEmoji: string
+  characterImage?: string
 }
 
 export interface Topic {
   id: string
   emoji: string
   accent: string
+  /** 공유용 URL 슬러그 (예: /physical) */
+  slug: string
   /** 슬라이더 카드 제목 */
   navTitle: string
   /** 랜딩/결과에서 쓰는 핵심 질문 */
   question: string
   /** 슬라이더 카드 한 줄 소개 */
   teaser: string
+  /** 입력 화면 상단 타이핑 소개문 (측정 기준 + 궁금증 유발) */
+  intro: string
   /** 조회수 (만 단위 수치, 예: 34.2만 -> 34.2) */
   viewsCount: number
+
+  /** 결과 화면에 공개할 통계·모델 출처 */
+  sourceTitle: string
+  sourceDetail: string
+  sourceUrl?: string
 
   // 입력 슬라이더
   inputLabel: string
@@ -62,21 +72,27 @@ const net_worth: Topic = {
   id: 'net_worth',
   emoji: '💰',
   accent: '#ffb703',
+  slug: 'net-worth',
   navTitle: '순자산 위치',
   question: '내 순자산은 대한민국\n또래 중 상위 몇 %일까? 💰',
   teaser: '대한민국 30대 중 상위 17%! 통장 팩폭 실측치 😱',
+  intro:
+    '이 테스트는 2025년 가계금융복지조사의 가구주 연령별 가구 순자산 중앙값을 기준으로 한 모델 추정치입니다. 개인 자산 통계가 아니라 같은 연령대 가구주가 이끄는 가구와 비교한 참고 결과예요.',
   viewsCount: 38.4,
+  sourceTitle: '2025년 가계금융복지조사',
+  sourceDetail: '2025년 3월 말 · 가구주 연령별 가구 순자산 중앙값 · 백분위는 자체 분포 모델 추정',
+  sourceUrl: 'https://mods.go.kr/board.es?act=view&bid=215&list_no=439535&mainXml=Y&mid=b80501010000',
   inputLabel: '순자산 (총자산 − 대출/부채)',
   inputHint: '예적금, 부동산, 주식에서 빚 뺀 진짜 내 순자산',
   min: 0,
   max: 100000,
   step: 500,
   default: 8000,
-  medianByAge: { '10s': 500, '20s': 3500, '30s': 12000, '40s': 21000, '50s': 27000, '60+': 22000 },
-  genderAdjust: {
-    female: { '20s': -300, '30s': -1000, '40s': -2000 },
-    male: { '20s': 300, '30s': 1000, '40s': 2000 },
-  },
+  // 2025 가계금융복지조사: 가구주 연령별 가구 순자산 중앙값(만원).
+  // 10대 독립 통계가 없어 29세 이하 참고값을 사용한다.
+  medianByAge: { '10s': 5000, '20s': 5000, '30s': 15585, '40s': 28384, '50s': 31685, '60+': 25000 },
+  // 연령×성별 중앙값이 공표되지 않아 임의 성별 보정을 제거한다.
+  genderAdjust: {},
   sigma: 0.9,
   floor: 100,
   xMaxFactor: 4,
@@ -101,7 +117,7 @@ const net_worth: Topic = {
           subTitle: '통장 잔고 보면 마음이 평화로움',
           bubbleLeft: '잔고 확인하면',
           bubbleRight: '절로 미소가 든든!',
-          characterEmoji: '💰👑🐻',
+          characterEmoji: '💰👑🐶',
         },
       },
       {
@@ -113,7 +129,7 @@ const net_worth: Topic = {
           subTitle: '차곡차곡 모아 집 마련 프로젝트',
           bubbleLeft: '차곡차곡 모아',
           bubbleRight: '내 집 마련 가자!',
-          characterEmoji: '💎🐻',
+          characterEmoji: '💎🐶',
         },
       },
     ],
@@ -125,7 +141,7 @@ const net_worth: Topic = {
         subTitle: '월급날 들어와서 퍼나르기 바쁜',
         bubbleLeft: '월급 들어왔는데',
         bubbleRight: '어디로 퍼갔지?',
-        characterEmoji: '🌱🐻',
+        characterEmoji: '🌱🐶',
       },
     },
   ),
@@ -137,21 +153,37 @@ const dating_count: Topic = {
   id: 'dating_count',
   emoji: '❤️',
   accent: '#ff4d6d',
+  slug: 'dating',
   navTitle: '연애 횟수',
   question: '나는 연애를 또래보다\n많이 한 편일까? ❤️',
   teaser: '연애 경험 상위 23%! 단톡방 찰떡 공유 팩폭 💘',
+  intro:
+    '대학내일20대연구소의 15~34세 미혼 연애 경험자 조사값을 출발점으로, 공개되지 않은 성별·중장년 값은 누적 경험이 완만히 증가한다고 가정한 오락성 추정 모델입니다.',
   viewsCount: 42.1,
+  sourceTitle: '대학내일20대연구소 2019 연애 실태조사 + 자체 추론',
+  sourceDetail: '15~34세 미혼 500명 조사(경험자 평균 4.7회, 30~34세 5.5회) · 성별 및 40대 이상은 자체 추정',
+  sourceUrl: 'https://www.20slab.org/Archives/32815',
   inputLabel: '총 누적 연애 횟수 (회)',
   inputHint: '지나간 옛 연인 포함 오락성 익명 팩폭치',
   min: 0,
   max: 20,
   step: 1,
   default: 3,
-  medianByAge: { '10s': 1, '20s': 3, '30s': 4, '40s': 4, '50s': 4, '60+': 3 },
-  genderAdjust: {},
+  // 공개 조사: 15~18세 5.2회, 30~34세 5.5회, 15~34세 경험자 전체 4.7회.
+  // 20대와 40대 이상은 누적 경험이 완만히 증가한다고 가정한 서비스 추정 중심값이다.
+  medianByAge: { '10s': 5.2, '20s': 4.2, '30s': 5.5, '40s': 6.2, '50s': 6.8, '60+': 7.2 },
+  // 공개 자료에 성별 교차 평균이 없어 ±0.2회를 둔 명시적 모델 가정이다.
+  genderAdjust: {
+    female: { '10s': -0.2, '20s': -0.2, '30s': -0.2, '40s': -0.2, '50s': -0.2, '60+': -0.2 },
+    male: { '10s': 0.2, '20s': 0.2, '30s': 0.2, '40s': 0.2, '50s': 0.2, '60+': 0.2 },
+  },
   sigma: 0.6,
   floor: 0.5,
-  fmt: (v) => `${v}회`,
+  fmt: (v) => {
+    const rounded = Number(Math.abs(v) < 0.0001 ? 0 : v)
+    const formatted = rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)
+    return `${formatted}회`
+  },
   compareVerb: '연애 경험이 많아요',
   resultTitle: (r) => `연애 경험 상위 ${Math.round(r.topPercent)}%! 💘`,
   headline: (r) =>
@@ -175,7 +207,7 @@ const dating_count: Topic = {
           subTitle: '좋아하면 일단 노빠꾸 직진',
           bubbleLeft: '가만히 앉아 있기엔',
           bubbleRight: '우리 사랑이 너무 뜨거워!',
-          characterEmoji: '💘🔥🐻‍❄️',
+          characterEmoji: '💘🔥🐶‍❄️',
         },
       },
       {
@@ -187,7 +219,7 @@ const dating_count: Topic = {
           subTitle: '진심과 밀당 타이밍을 아는',
           bubbleLeft: '사랑은 항상',
           bubbleRight: '달콤하고 솔직하게!',
-          characterEmoji: '🌹🐻',
+          characterEmoji: '🌹🐶',
         },
       },
     ],
@@ -199,7 +231,7 @@ const dating_count: Topic = {
         subTitle: '한 번 시작하면 깊게 다 퍼주는',
         bubbleLeft: '횟수보다 중요한 건',
         bubbleRight: '진심 어린 마음!',
-        characterEmoji: '💌🐻',
+        characterEmoji: '💌🐶',
       },
     },
   ),
@@ -211,20 +243,28 @@ const income_salary: Topic = {
   id: 'income_salary',
   emoji: '💵',
   accent: '#4c6ef5',
+  slug: 'income',
   navTitle: '연봉 (소득)',
   question: '내 세전 연봉은 대한민국\n또래 중 상위 몇 %일까? 💵',
   teaser: '내 생각 속 위치 vs 실제 대한민국 리얼 연봉 위치 팩폭 💥',
+  intro:
+    '이 테스트는 국가데이터처의 2024년 12월 임금근로일자리 월평균 보수를 연 환산한 기준점에 자체 분포를 적용한 모델 추정치입니다. 공식 연봉 중앙값이나 공식 백분위는 아닙니다.',
   viewsCount: 35.6,
+  sourceTitle: '2024년 임금근로일자리 소득(보수) 결과',
+  sourceDetail: '2024년 12월 연령·성별 월평균 보수 × 12 · 백분위는 자체 분포 모델 추정',
+  sourceUrl: 'https://mods.go.kr/boardDownload.es?bid=11113&list_no=443648&seq=1',
   inputLabel: '세전 연간 소득 (연봉 만원)',
   inputHint: '세전 총수령액 (기본급 + 인센티브 + 상여금)',
   min: 1500,
   max: 20000,
   step: 100,
   default: 4200,
-  medianByAge: { '10s': 2200, '20s': 3300, '30s': 4800, '40s': 5800, '50s': 6200, '60+': 4000 },
+  // 2024년 12월 임금근로일자리 연령별 월평균 보수 × 12(만원).
+  medianByAge: { '10s': 1140, '20s': 3252, '30s': 4764, '40s': 5628, '50s': 5340, '60+': 3516 },
   genderAdjust: {
-    female: { '20s': -200, '30s': -500, '40s': -800 },
-    male: { '20s': 200, '30s': 500, '40s': 800 },
+    // 성별·연령별 직접 공표 평균과 일치하도록 전체 평균과의 차이를 적용한다.
+    female: { '10s': -84, '20s': -192, '30s': -516, '40s': -1272, '50s': -1668, '60+': -1116 },
+    male: { '10s': 96, '20s': 180, '30s': 372, '40s': 900, '50s': 1236, '60+': 828 },
   },
   sigma: 0.45,
   fmt: (v) => fmtSalary(v),
@@ -248,7 +288,7 @@ const income_salary: Topic = {
           subTitle: '연봉 협상 테이블 지배자',
           bubbleLeft: '월급명세서 보면',
           bubbleRight: '뿌듯함이 수직 상승!',
-          characterEmoji: '🏢💵🐻',
+          characterEmoji: '🏢💵🐶',
         },
       },
       {
@@ -260,7 +300,7 @@ const income_salary: Topic = {
           subTitle: '회사 일 든든하게 해내는 능력자',
           bubbleLeft: '오늘도 열일하고',
           bubbleRight: '맛있는 거 먹자!',
-          characterEmoji: '💼🐻',
+          characterEmoji: '💼🐶',
         },
       },
     ],
@@ -272,7 +312,7 @@ const income_salary: Topic = {
         subTitle: '스펙 업하고 이직 준비 중인',
         bubbleLeft: '내 연봉은',
         bubbleRight: '이제부터 우상향!',
-        characterEmoji: '📈🐻',
+        characterEmoji: '📈🐶',
       },
     },
   ),
@@ -284,10 +324,15 @@ const ideal_match: Topic = {
   id: 'ideal_match',
   emoji: '💘',
   accent: '#f72585',
+  slug: 'ideal',
   navTitle: '이상형 희소성',
   question: '내 이상형 조건은 대한민국에\n상위 몇 %나 존재할까? 💘',
   teaser: '키 180+ / 연봉 6천+… 대한민국에 생각보다 별로 없다 😱',
+  intro:
+    '키·임금의 공개 통계와 직업·흡연·체형에 대한 자체 가정을 결합한 오락성 희소도 모델입니다. 조건 사이의 실제 결합분포가 아니므로 대한민국의 공식 인구 비율로 해석하면 안 됩니다.',
   viewsCount: 29.8,
+  sourceTitle: '2024 건강검진·2024 임금 통계 + 자체 희소도 모델',
+  sourceDetail: '키·임금은 공개 평균 참고 · 직업·체형 및 조건 결합확률은 자체 가정',
   inputLabel: '원하는 이상형 조건 수준 (100점 만점)',
   inputHint: '키, 연봉, 학벌, 스타일 종합 까다로움 지수',
   min: 10,
@@ -316,7 +361,7 @@ const ideal_match: Topic = {
           subTitle: '대한민국 상위 1% 조건만 모은',
           bubbleLeft: '내 눈이 높은 게 아니라',
           bubbleRight: '유니콘이 희귀한 거야!',
-          characterEmoji: '🦄💘🐻',
+          characterEmoji: '🦄💘🐶',
         },
       },
     ],
@@ -328,7 +373,7 @@ const ideal_match: Topic = {
         subTitle: '진심과 통함이 더 중요한 사람',
         bubbleLeft: '조건보다 중요한 건',
         bubbleRight: '나랑 잘 통하는 마음!',
-        characterEmoji: '🌸🐻',
+        characterEmoji: '🌸🐶',
       },
     },
   ),
@@ -340,10 +385,16 @@ const physical_condition: Topic = {
   id: 'physical_condition',
   emoji: '🏃',
   accent: '#059669',
+  slug: 'physical',
   navTitle: '신체적 조건',
   question: '나의 신체적 조건은?\n또래 중 상위 몇 %일까? 🏃',
   teaser: '2024 국가건강검진 실측치! 내 키 & 몸무게 팩폭 위치 📏',
+  intro:
+    '이 테스트는 2024년 국가건강검진 수검자의 연령·성별·지역별 평균 신장과 체중에 자체 표준편차를 적용한 모델 추정치입니다. 전 국민의 공식 백분위는 아닙니다.',
   viewsCount: 43.7,
+  sourceTitle: '국민건강보험공단 2024 건강검진통계',
+  sourceDetail: '일반건강검진 수검자의 시도·연령·성별 평균 · 표준편차와 백분위는 자체 모델 추정',
+  sourceUrl: 'https://kosis.kr/statHtml/statHtml.do?orgId=350&tblId=DT_35007_N130&conn_path=I2',
   inputLabel: '내 키 (신장 cm)',
   inputHint: '2024년 국가건강검진 공식 실측 통계 기반',
   min: 140,
@@ -377,7 +428,7 @@ const physical_condition: Topic = {
           subTitle: '압도적인 비율과 남다른 옷태',
           bubbleLeft: '위에서 내려다보는',
           bubbleRight: '공기는 참 상쾌해!',
-          characterEmoji: '👑🦒🐻',
+          characterEmoji: '👑🦒🐶',
         },
       },
       {
@@ -389,7 +440,7 @@ const physical_condition: Topic = {
           subTitle: '건강하고 균형 잡힌 신체 밸런스',
           bubbleLeft: '가장 이상적인',
           bubbleRight: '완벽한 밸런스 피지컬!',
-          characterEmoji: '💎🏃🐻',
+          characterEmoji: '💎🏃🐶',
         },
       },
     ],
@@ -401,7 +452,7 @@ const physical_condition: Topic = {
         subTitle: '친근하고 귀여운 다부진 매력',
         bubbleLeft: '비율보다 중요한 건',
         bubbleRight: '건강한 활력이지!',
-        characterEmoji: '😊🐻',
+        characterEmoji: '😊🐶',
       },
     },
   ),
@@ -413,29 +464,40 @@ const spending_style: Topic = {
   id: 'spending_style',
   emoji: '💳',
   accent: '#ff477e',
+  slug: 'spending',
   navTitle: '소비 수준',
   question: '한 달에 지르는 돈…\n내 소비 수준은 또래보다 셀까? 💳',
-  teaser: '저축형 vs 경험소비형 vs 플렉스 과소비형 캐릭터 팩폭 🛍️',
+  teaser: '1인 가구 월평균 지출 실측치! 내 소비 위치 팩폭 🛍️',
+  intro:
+    '이 테스트는 통계청 가계동향조사(2022년)의 [1인 가구 연령별 월평균 소비지출] 실측 데이터를 기준으로 한 모델 추정치입니다. (39세 이하 155만원, 40대 180만원, 50대 167만원, 60세 이상 95만원)',
   viewsCount: 19.2,
+  sourceTitle: '통계청 가계동향조사(2022년) 1인 가구 지출',
+  sourceDetail: '통계청 2022년 1인 가구 연령별 월평균 소비지출 항목별 합계 · 백분위는 자체 분포 모델 추정',
+  sourceUrl: 'https://kostat.go.kr',
   inputLabel: '한 달 총 소비 지출 (만원)',
-  inputHint: '배달, 쇼핑, 카페, 생활비 포함 월 지출',
+  inputHint: '식료품, 주거/수도, 교통, 음식/숙박, 교양 등 월 지출 총합',
   min: 30,
   max: 1000,
   step: 10,
-  default: 150,
-  medianByAge: { '10s': 50, '20s': 120, '30s': 180, '40s': 230, '50s': 250, '60+': 160 },
+  default: 155,
+  // 통계청 가계동향조사(2022년) 1인 가구 연령별 월평균 소비지출 합계 (만원)
+  // 39세 이하: 155.1만원 (반올림 155)
+  // 40~49세: 179.9만원 (반올림 180)
+  // 50~59세: 166.8만원 (반올림 167)
+  // 60세 이상: 94.8만원 (반올림 95)
+  medianByAge: { '10s': 155, '20s': 155, '30s': 155, '40s': 180, '50s': 167, '60+': 95 },
   genderAdjust: {},
-  sigma: 0.5,
-  fmt: (v) => `${v.toLocaleString()}만원`,
+  sigma: 0.45,
+  fmt: (v) => `${Math.round(v).toLocaleString()}만원`,
   compareVerb: '소비가 많아요',
-  resultTitle: (r) => `대한민국 또래 소비 수준\n상위 ${Math.round(r.topPercent)}%! 💳`,
-  headline: (r) => `나는 또래 100명 중 ${r.peopleBelow}명보다 신나게 지르는 중 🛍️`,
+  resultTitle: (r) => `대한민국 또래 1인 가구 소비\n상위 ${Math.round(r.topPercent)}%! 💳`,
+  headline: (r) => `나는 1인 가구 또래 100명 중 ${r.peopleBelow}명보다 신나게 지르는 중 🛍️`,
   verdict: (r) =>
     r.diff >= 50
       ? '플렉스 과소비형 팩폭! 텅장 되지 않게 통장 관리에 주의하세요 🔥'
       : r.diff <= -30
         ? '알뜰살뜰 저축 수호형! 남들 지를 때 차곡차곡 잘 아끼네요 👍'
-        : '딱 평균적인 무난한 소비형입니다!',
+        : '딱 1인 가구 평균적인 무난한 소비형입니다!',
   labels: between(
     [
       {
@@ -447,7 +509,7 @@ const spending_style: Topic = {
           subTitle: '지르면 기분이 좋아지는 직진러',
           bubbleLeft: '돈은 쓰라고',
           bubbleRight: '버는 거잖아!',
-          characterEmoji: '💸💳🐻',
+          characterEmoji: '💸💳🐶',
         },
       },
       {
@@ -456,10 +518,10 @@ const spending_style: Topic = {
         emoji: '🍹',
         card: {
           badgeTitle: '경험소비형',
-          subTitle: '여행과 맛집에 돈 안 아끼는',
+          subTitle: '여행과 외식, 경험에 돈 안 아끼는',
           bubbleLeft: '행복한 경험에',
           bubbleRight: '투자하는 인생!',
-          characterEmoji: '🍹🐻',
+          characterEmoji: '🍹🐶',
         },
       },
     ],
@@ -471,7 +533,7 @@ const spending_style: Topic = {
         subTitle: '남들 쓸 때 차곡차곡 아끼는',
         bubbleLeft: '아낀 만큼',
         bubbleRight: '시드머니로 직행!',
-        characterEmoji: '🪙🐻',
+        characterEmoji: '🪙🐶',
       },
     },
   ),
@@ -490,4 +552,6 @@ export function topicById(id: string): Topic {
   return TOPICS.find((t) => t.id === id) ?? TOPICS[0]
 }
 
-
+export function topicBySlug(slug: string): Topic | undefined {
+  return TOPICS.find((t) => t.slug === slug)
+}

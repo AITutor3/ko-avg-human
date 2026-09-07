@@ -22,22 +22,21 @@ export function computeIdealMatchStat(input: IdealMatchInput): IdealMatchStatRes
       : 'female'
 
   // 1. 키(신장) 확률: 정규분포 기준
-  // 한국 성인 남성 평균 174cm (표준편차 5.8cm), 여성 평균 161.5cm (표준편차 5.3cm)
+  // 2024년 국가건강검진 30대 평균: 남 174.55cm, 여 161.91cm.
+  // 표준편차는 공식 평균표가 제공하지 않는 서비스 가정값이다.
   const isMaleTarget = targetGender === 'male'
-  const heightMean = isMaleTarget ? 174.0 : 161.5
+  const heightMean = isMaleTarget ? 174.55 : 161.91
   const heightSd = isMaleTarget ? 5.8 : 5.3
 
-  let probHeight = 1.0
-  if (input.targetHeightMin > (isMaleTarget ? 165 : 153)) {
-    const zHeight = (input.targetHeightMin - heightMean) / heightSd
-    probHeight = Math.max(0.01, 1 - normalCdf(zHeight))
-  }
+  const zHeight = (input.targetHeightMin - heightMean) / heightSd
+  const probHeight = Math.max(0.01, 1 - normalCdf(zHeight))
 
   // 2. 소득/연봉 확률: 로그정규분포 기준
-  // 타겟 연령대 중앙값 기준 (기본 30대 기준 약 4,800만 남성, 4,300만 여성)
+  // 2024년 12월 임금근로일자리 30대 성별 월평균 보수 × 12.
+  // 공식 중앙값/결합분포가 아닌 희소도 모델의 기준점이다.
   let probIncome = 1.0
   if (input.targetIncomeMin > 0) {
-    const medianSalary = isMaleTarget ? 5000 : 4200
+    const medianSalary = isMaleTarget ? 5136 : 4248
     const mu = Math.log(medianSalary)
     const sigma = 0.45
     const zSalary = (Math.log(input.targetIncomeMin) - mu) / sigma
@@ -79,12 +78,12 @@ export function computeIdealMatchStat(input: IdealMatchInput): IdealMatchStatRes
   const summaryBreakdown = [
     {
       label: `희망 키 ${input.targetHeightMin}cm 이상`,
-      probText: `해당 성별 상위 ${Math.round((1 - probHeight) * 100)}% 지점 (충족률 약 ${Math.round(probHeight * 100)}%)`,
+      probText: `해당 성별 상위 약 ${Math.round(probHeight * 100)}% (충족률 약 ${Math.round(probHeight * 100)}%)`,
       isRare: probHeight < 0.25,
     },
     {
       label: input.targetIncomeMin > 0 ? `최소 연봉 ${input.targetIncomeMin.toLocaleString()}만원 이상` : '연봉 무관',
-      probText: input.targetIncomeMin > 0 ? `소득 상위 약 ${Math.round((1 - probIncome) * 100)}%` : '조건 없음',
+      probText: input.targetIncomeMin > 0 ? `조건 충족률 약 ${Math.round(probIncome * 100)}%` : '조건 없음',
       isRare: probIncome < 0.2,
     },
     {

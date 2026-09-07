@@ -1,5 +1,6 @@
 import type { Result } from './stats'
 import { label } from './copy'
+import { CHARACTER_IMAGES } from './assets/characterImages'
 
 interface Props {
   result: Result
@@ -16,8 +17,10 @@ export default function TypeResultCard({ result, onShare, onSave, busy, cardInne
     subTitle: '나만의 독특한 유형',
     bubbleLeft: '남들과 비교해도',
     bubbleRight: '나다운 게 제일 좋아!',
-    characterEmoji: `${lab.emoji}🐻`,
+    characterEmoji: `${lab.emoji}🐶`,
   }
+
+  const charImage = card.characterImage || CHARACTER_IMAGES[card.badgeTitle]
 
   return (
     <div className="type-card-container" ref={cardInnerRef}>
@@ -46,7 +49,16 @@ export default function TypeResultCard({ result, onShare, onSave, busy, cardInne
         <div className="character-avatar-wrap">
           <div className="aura-bg" />
           <div className="character-avatar">
-            <span className="char-emoji">{card.characterEmoji}</span>
+            {charImage ? (
+              <img
+                src={charImage}
+                alt={card.badgeTitle}
+                className="char-img-render"
+                style={{ width: 68, height: 68, objectFit: 'contain', display: 'block' }}
+              />
+            ) : (
+              <span className="char-emoji">{card.characterEmoji}</span>
+            )}
           </div>
         </div>
 

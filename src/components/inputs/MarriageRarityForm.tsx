@@ -88,7 +88,7 @@ export default function MarriageRarityForm({
               내 키 (신장): <b className="highlight-val">{formState.myHeight}cm</b>
             </span>
             <span className="sub-field-hint">
-              {isMale ? '남성 평균 174cm' : '여성 평균 161.5cm'}
+              {isMale ? '2024 검진 30대 남성 평균 174.6cm' : '2024 검진 30대 여성 평균 161.9cm'}
             </span>
           </div>
           <div className="slider-container" style={{ margin: '8px 0' }}>

@@ -93,7 +93,7 @@ export default function IdealMatchForm({
               희망 상대 키: <b className="highlight-val">{formState.targetHeightMin}cm 이상</b>
             </span>
             <span className="sub-field-hint">
-              {targetIsMale ? '(대한민국 2030 남성 평균 174cm)' : '(대한민국 2030 여성 평균 161.5cm)'}
+              {targetIsMale ? '(2024 검진 30대 남성 평균 174.6cm)' : '(2024 검진 30대 여성 평균 161.9cm)'}
             </span>
           </div>
           <div className="slider-container" style={{ margin: '8px 0' }}>
@@ -109,7 +109,7 @@ export default function IdealMatchForm({
           </div>
           <div className="range-ticks-row">
             <span>{targetIsMale ? '165cm' : '150cm'}</span>
-            <span>{targetIsMale ? '174cm (평균)' : '161cm (평균)'}</span>
+            <span>{targetIsMale ? '174.6cm (평균)' : '161.9cm (평균)'}</span>
             <span>{targetIsMale ? '180cm+' : '168cm+'}</span>
             <span>{targetIsMale ? '190cm' : '175cm'}</span>
           </div>

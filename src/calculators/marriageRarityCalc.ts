@@ -19,34 +19,32 @@ export function computeMarriageRarityStat(input: MarriageRarityInput): MarriageR
   const isMale = input.myGender === 'male'
 
   // 1. 신장 백분위
-  const heightMean = isMale ? 174.0 : 161.5
+  const heightMean = isMale ? 174.55 : 161.91
   const heightSd = isMale ? 5.8 : 5.3
   const zHeight = (input.myHeight - heightMean) / heightSd
   const heightScore = Math.min(99, Math.max(1, Math.round(normalCdf(zHeight) * 100)))
 
-  // 2. 연봉 백분위 (로그정규분포)
-  const salaryMedians: Record<AgeBucket, number> = {
-    '10s': 2200,
-    '20s': 3300,
-    '30s': 4800,
-    '40s': 5800,
-    '50s': 6200,
-    '60+': 4000,
+  // 2. 연봉 모델 점수: 2024년 12월 성별·연령별 월평균 보수 × 12.
+  // 공식 중앙값이나 백분위가 아니므로 종합 희소도용 추정치로만 사용한다.
+  const salaryBenchmarks: Record<'male' | 'female', Record<AgeBucket, number>> = {
+    male: { '10s': 1236, '20s': 3432, '30s': 5136, '40s': 6528, '50s': 6576, '60+': 4344 },
+    female: { '10s': 1056, '20s': 3060, '30s': 4248, '40s': 4356, '50s': 3672, '60+': 2400 },
   }
-  const baseSalaryMedian = salaryMedians[age] + (isMale ? 500 : -500)
+  const baseSalaryMedian = salaryBenchmarks[isMale ? 'male' : 'female'][age]
   const zSalary = (Math.log(Math.max(1000, input.mySalary)) - Math.log(baseSalaryMedian)) / 0.45
   const salaryScore = Math.min(99, Math.max(1, Math.round(normalCdf(zSalary) * 100)))
 
-  // 3. 순자산 백분위 (로그정규분포)
+  // 3. 순자산 모델 점수: 2025년 가구주 연령별 가구 순자산 중앙값.
+  // 연령×성별 중앙값이 없어 성별 보정은 적용하지 않는다.
   const assetMedians: Record<AgeBucket, number> = {
-    '10s': 500,
-    '20s': 3500,
-    '30s': 12000,
-    '40s': 21000,
-    '50s': 27000,
-    '60+': 22000,
+    '10s': 5000,
+    '20s': 5000,
+    '30s': 15585,
+    '40s': 28384,
+    '50s': 31685,
+    '60+': 25000,
   }
-  const baseAssetMedian = assetMedians[age] + (isMale ? 1000 : -1000)
+  const baseAssetMedian = assetMedians[age]
   const zAsset = (Math.log(Math.max(100, input.myNetWorth)) - Math.log(baseAssetMedian)) / 0.9
   const assetScore = Math.min(99, Math.max(1, Math.round(normalCdf(zAsset) * 100)))
 

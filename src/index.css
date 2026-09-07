@@ -1066,6 +1066,18 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 34px; }
   z-index: 2;
   font-size: 38px;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.char-img-render {
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.15));
+  transition: transform 0.2s ease;
+}
+
+.char-img-render:hover {
+  transform: scale(1.08);
 }
 
 .speech-bubble {
@@ -1245,19 +1257,25 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 34px; }
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: 8px;
+}
+
+.meta-chip {
+  background: #f1f5f9;
+  color: #475569;
   font-size: 12px;
   font-weight: 700;
-  color: #6b7280;
+  padding: 5px 12px;
+  border-radius: 10px;
 }
 
-.result-meta-chips .divider {
-  color: #e5e7eb;
-}
-
-.result-meta-chips .top-percent-chip {
+.top-percent-chip-red {
+  background: #fef2f2;
   color: #ef4444;
+  font-size: 12px;
   font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 10px;
 }
 
 /* 카드 공통 독립 박스 */
@@ -1443,6 +1461,50 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 34px; }
 }
 
 /* 4. 최하단 verdict 문구 및 푸터 */
+.result-source-card {
+  margin-top: 14px;
+  padding: 16px;
+  text-align: left;
+  border-color: #e5e7eb;
+  background: #f9fafb;
+}
+
+.result-source-heading {
+  margin-bottom: 7px;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.result-source-title,
+.result-source-link {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.result-source-link {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.result-source-detail,
+.result-fun-disclaimer {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.result-fun-disclaimer {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+  color: #9a3412;
+}
+
 .result-footer-section {
   display: flex;
   flex-direction: column;
@@ -2020,5 +2082,143 @@ input[type='range'] { width: 100%; accent-color: var(--accent); height: 34px; }
   width: 20px;
 }
 
+/* 누적 이용자 수 배너 (스크린샷 스타일 반영) */
+.pm-visitor-banner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #ffffff;
+  padding: 8px 18px 14px;
+}
+
+.pm-visitor-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.green-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  display: inline-block;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  animation: pulse-green 1.8s infinite ease-in-out;
+}
+
+@keyframes pulse-green {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.pm-visitor-count {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ef4444;
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+}
+
+/* 입력 화면 상단 우측 (주제 뱃지 + 공유) */
+.input-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.input-share-btn:active {
+  background: #f1f5f9;
+}
+
+/* 타이핑 소개문 */
+.input-intro-typing {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #475569;
+  letter-spacing: -0.01em;
+  min-height: 3.4em;
+}
+
+.typing-caret {
+  display: inline-block;
+  margin-left: 1px;
+  color: var(--accent, #ef4444);
+  animation: typing-blink 0.9s step-end infinite;
+}
+
+@keyframes typing-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* 접이식 입력 폼 */
+.collapsible {
+  margin-top: 16px;
+  border: 1px solid #e5e9f0;
+  border-radius: 16px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.collapsible-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 15px 16px;
+  border: 0;
+  background: #ffffff;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #1e293b;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+}
+
+.collapsible.is-open .collapsible-header {
+  border-bottom: 1px solid #eef1f6;
+}
+
+.collapsible-chevron {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.collapsible-body {
+  padding: 14px 12px 4px;
+}
 
 

@@ -77,44 +77,17 @@ export default function SpendingStyleForm({
         </div>
       </div>
 
-      {/* 2. 소득 및 소비 지출 입력 */}
+      {/* 2. 소비 지출 입력 */}
       <div className="form-card-section" style={{ marginTop: 16 }}>
-        <div className="section-label-badge">Step 2. 월 수입 & 소비 지출</div>
+        <div className="section-label-badge">Step 2. 한 달 총 소비 지출</div>
 
-        {/* 세후 월 소득 */}
+        {/* 월 총 지출 슬라이더만 단독 유지 */}
         <div className="sub-field-group">
-          <div className="field-title-flex">
-            <span className="sub-field-title">
-              세후 월 수입: <b className="highlight-val">{formState.monthlyIncome.toLocaleString()}만원</b>
-            </span>
-            <span className="sub-field-hint">실수령액</span>
-          </div>
-          <div className="slider-container" style={{ margin: '8px 0' }}>
-            <input
-              type="range"
-              min={100}
-              max={1500}
-              step={10}
-              value={formState.monthlyIncome}
-              className="custom-range-slider"
-              onChange={(e) => onChange({ ...formState, monthlyIncome: Number(e.target.value) })}
-            />
-          </div>
-          <div className="range-ticks-row">
-            <span>100만</span>
-            <span>300만</span>
-            <span>600만</span>
-            <span>1,500만+</span>
-          </div>
-        </div>
-
-        {/* 월 총 지출 */}
-        <div className="sub-field-group" style={{ marginTop: 18 }}>
           <div className="field-title-flex">
             <span className="sub-field-title">
               한 달 총 지출: <b className="highlight-val" style={{ color: '#f72585' }}>{formState.monthlySpending.toLocaleString()}만원</b>
             </span>
-            <span className="sub-field-hint">생활비 + 쇼핑 + 배달 + 취미</span>
+            <span className="sub-field-hint">식료품, 주거/수도, 교통, 외식 등 포함</span>
           </div>
           <div className="slider-container" style={{ margin: '8px 0' }}>
             <input
@@ -129,22 +102,9 @@ export default function SpendingStyleForm({
           </div>
           <div className="range-ticks-row">
             <span>30만</span>
-            <span>150만</span>
+            <span>155만 (39세 이하 평균)</span>
             <span>400만</span>
             <span>1,000만+</span>
-          </div>
-        </div>
-
-        {/* 소비 비율 및 잉여 저축액 분석 카드 */}
-        <div className="spending-metric-banner" style={{ marginTop: 16 }}>
-          <div className="metric-col">
-            <span className="lbl">소득 대비 소비율</span>
-            <b className={`val ${spendRatio > 80 ? 'danger' : ''}`}>{spendRatio}%</b>
-          </div>
-          <div className="metric-divider-v" />
-          <div className="metric-col">
-            <span className="lbl">월 잉여 저축 가능액</span>
-            <b className="val">약 {monthlySavings.toLocaleString()}만원</b>
           </div>
         </div>
       </div>
