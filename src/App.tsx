@@ -9,7 +9,7 @@ import {
   type Result,
 } from './stats'
 import { TOPICS, topicBySlug, type Topic } from './topics'
-import { comprehensiveSummary, headline, verdict } from './copy'
+import { comprehensiveSummary, headline } from './copy'
 import DistributionChart from './DistributionChart'
 import TypeResultCard from './TypeResultCard'
 import { event, initGA, pageview } from './gtag'

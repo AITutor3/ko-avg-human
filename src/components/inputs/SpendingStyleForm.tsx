@@ -20,14 +20,6 @@ export default function SpendingStyleForm({
   setGender,
   onNext,
 }: Props) {
-  // 소득 대비 소비 비율
-  const spendRatio =
-    formState.monthlyIncome > 0
-      ? Math.round((formState.monthlySpending / formState.monthlyIncome) * 100)
-      : 50
-
-  const monthlySavings = Math.max(0, formState.monthlyIncome - formState.monthlySpending)
-
   return (
     <div className="custom-input-form">
       {/* 1. 기본 인적사항 */}
